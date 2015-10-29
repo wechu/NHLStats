@@ -1,0 +1,12 @@
+
+Things to do next:
+- Change network to output probability of teams winning 
+- Update web scraper 
+- Add cross-validation to test network accuracy
+-
+
+Other stuff: 
+- Add regularization term
+- 
+
+
