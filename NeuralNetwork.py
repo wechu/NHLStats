@@ -122,8 +122,8 @@ class NeuralNetwork:
         plt.ylabel('y-value')
         plt.scatter(X2, predictions, c='b', marker='.', label='NN Predictions')
         plt.scatter(X, y, c='g', marker='x', label='Target values')
-        plt.plot(X, y, color='g')
-        plt.legend(bbox_to_anchor=(0.85, 0.95), loc=2, borderaxespad=0)
+        #plt.plot(X, y, color='g')
+        plt.legend(bbox_to_anchor=(0.75, 0.95), loc=2, borderaxespad=0)
         return
 
     def graphCosts(self):
@@ -146,21 +146,28 @@ if __name__ == "__main__":
 
     test2 = np.array([0,0,1,1])
 
-
     # Tried out fitting a sine curve
     net = NeuralNetwork(8, 1, 1)
 
-    x_values = (np.random.uniform(-2*math.pi, 2*math.pi, 50))
+    num_points = 40
+    x_values = (np.random.uniform(-2*math.pi, 2*math.pi, num_points))
     x_values.sort()
     x_values = np.atleast_2d(x_values).T
 
-    y_values = np.sin(x_values)
+    # Add gaussian noise to targets
+    y_values = np.sin(x_values) + np.atleast_2d(np.random.normal(0, 0.2, num_points)).T
 
-    net.train(x_values, y_values, 500, 0.25)
+    net.train(x_values, y_values, 800, 0.1)
 
     x2_values = (np.linspace(-2*math.pi, 2*math.pi, 100))
     x2_values = np.atleast_2d(x2_values).T
 
     #net.graphCosts()
     net.graphPredictions(x_values, y_values, x2_values)
+
+    # Plot true sine curve
+    true_y_values = np.sin(x2_values)
+    plt.plot(x2_values, true_y_values)
+
+
     plt.show()
