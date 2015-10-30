@@ -1,14 +1,18 @@
 __author__ = 'Jonah'
+# Scraping data from NHL statistics website
+
 import urllib.request
 import re
 import csv
 
-# requsting the website
-# i am testing commits
+
+# variables
+season_year=20142015
+number_pages=50
 
 datalist = []
-for i in range(1, 42):
-    url = "http://www.nhl.com/stats/game?fetchKey=20152ALLSATAll&viewName=summary&sort=gameDate&gp=1&pg={0}".format(i)
+for i in range(1, number_pages):
+    url = "http://www.nhl.com/stats/team?reportType=game&report=teamsummary&season={0}&gameType=2&aggregate=0".format(season_year)
     website = urllib.request.urlopen(url)
     readwebsite = website.read()
 
@@ -37,7 +41,7 @@ for x in datalist:
      print(x)
      print('-------------')
 
-file = open('GameData2014-15.csv','w')
+file = open('Raw_Season_Game_Data_{}.csv'.format(season_year),'w')
 writer = csv.writer(file, lineterminator='\n')
 
 for page in datalist:
