@@ -1,5 +1,3 @@
-__author__ = 'Wes'
-
 import numpy as np
 import matplotlib.pyplot as plt
 import math
@@ -155,7 +153,7 @@ if __name__ == "__main__":
     x_values = np.atleast_2d(x_values).T
 
     # Add gaussian noise to targets
-    y_values = np.sin(x_values) + np.atleast_2d(np.random.normal(0, 0.2, num_points)).T
+    y_values = np.sin(x_values) + np.atleast_2d(np.random.normal(0, 0.5, num_points)).T
 
     net.train(x_values, y_values, 800, 0.1)
 
