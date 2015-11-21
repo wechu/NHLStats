@@ -1,5 +1,3 @@
-__author__ = 'Jonah'
-
 import csv
 
 XInput = []
