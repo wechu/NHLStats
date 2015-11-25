@@ -3,6 +3,7 @@ import numpy as np
 
 inputs_raw = []
 with open('team_game_season_2014_2015.csv', 'r') as csvfile:
+    next(csvfile)
     reader = csv.reader(csvfile)
     for row in reader:
         inputs_raw.append([(entry) for entry in row])
@@ -17,9 +18,8 @@ csvfile.close()
 
 print(team_legend)
 
-
-# # for i in range(4):
-# #    print(inputs[i])
+for i in range(4):
+  print(inputs_raw[i])
 #
 # teams_inputs = np.array(inputs)[:, 0:2]  # These should not be normalized (team numbers)
 # stats_inputs = np.array(inputs)[:, 2:]
