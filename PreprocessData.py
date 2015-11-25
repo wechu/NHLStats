@@ -18,8 +18,12 @@ csvfile.close()
 
 print(team_legend)
 
-for i in range(4):
-  print(inputs_raw[i])
+
+
+
+
+# for i in range(4):
+#   print(inputs_raw[i])
 #
 # teams_inputs = np.array(inputs)[:, 0:2]  # These should not be normalized (team numbers)
 # stats_inputs = np.array(inputs)[:, 2:]
