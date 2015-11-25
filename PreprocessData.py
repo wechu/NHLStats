@@ -6,8 +6,10 @@ with open('InputData2014-15_Raw.csv', 'r') as csvfile:
     reader = csv.reader(csvfile)
     for row in reader:
         inputs.append([float(entry) for entry in row])
-
 csvfile.close()
+
+team_legend=[]
+
 
 # for i in range(4):
 #    print(inputs[i])
