@@ -38,7 +38,7 @@ class NeuralNetwork:
                 self.iterations.append(j)
 
             # Print cost function
-            if showCost and j % 20 == 0:
+            if showCost and j % 10 == 0:
                 print("Cost:", self.getCost(X, y, False))
 
             # Initialize sum of errors
@@ -53,7 +53,7 @@ class NeuralNetwork:
                 l1_activations = np.insert(l1_activations, 0, 1)  # Add bias unit
 
                 # Output layer (linear activation)
-                l2_activations = self.l1_weights.dot(l1_activations)
+                l2_activations = self.sigmoid2(self.l1_weights.dot(l1_activations))
 
                 # Backpropagation
                 # Output errors (deltas)
@@ -73,8 +73,6 @@ class NeuralNetwork:
             self.l0_weights -= learning_rate * l0_deriv_sum / len(X)
             self.l1_weights -= learning_rate * l1_deriv_sum / len(X)
 
-            #print("l0:", np.sum(l0_deriv_sum))
-            #print("l1:", np.sum(l1_deriv_sum))
         return
 
     def predict(self, example, addOnes=True):
@@ -85,8 +83,12 @@ class NeuralNetwork:
         l1_activations = self.sigmoid(self.l0_weights.dot(example))
         l1_activations = np.insert(l1_activations, 0, 1, 0)
 
-        out_activations = self.l1_weights.dot(l1_activations)
+        out_activations = self.sigmoid2(self.l1_weights.dot(l1_activations))
         return out_activations
+
+    def predict_mult(self, examples):
+        return [self.predict(ex) for ex in examples]
+
 
     def getCost(self, X, y, addOnes=True):
         # Use mean squared error
@@ -104,6 +106,10 @@ class NeuralNetwork:
         # Assumes a has already had the sigmoid function applied to it
         return 1 - a**2
 
+    def sigmoid2(self, x):
+        # This sigmoid is used for the output of the network (between 0 and 1)
+        return 1 / (1 + np.exp(-x))
+
     def graphPredictions(self, X, y, X2=None):
         # Used for 1 feature data with 1 feature output (Eg: sin(x) = y)
         # X2 is used to check x-values other than those in the training set
@@ -114,7 +120,7 @@ class NeuralNetwork:
         for i in range(len(X2)):
             predictions.append(self.predict(X2[i]))
 
-        plt.figure(1)
+        plt.figure()
         plt.title('Comparing predictions and target')
         plt.xlabel('x-value')
         plt.ylabel('y-value')
@@ -124,9 +130,23 @@ class NeuralNetwork:
         plt.legend(bbox_to_anchor=(0.75, 0.95), loc=2, borderaxespad=0)
         return
 
+
+    def graphBoundary(self, x_range, y_range, spacing, num=1):
+        xx, yy = np.meshgrid(np.arange(x_range[0], x_range[1], spacing), np.arange(y_range[0], y_range[1], spacing))
+
+        preds = np.array(self.predict_mult(np.c_[xx.ravel(), yy.ravel()]))
+
+
+        preds = preds.reshape(xx.shape)
+        plt.figure()
+        plt.contour(xx, yy, preds,  cmap=plt.cm.Paired, levels=[0.5])
+
+
+        return
+
     def graphCosts(self):
         # Displays graph of costs (need to run train() with showCost=True first)
-        plt.figure(2)
+        plt.figure()
         plt.title('Cost vs Iteration')
         plt.xlabel("Iteration")
         plt.ylabel('Cost')
@@ -137,35 +157,21 @@ class NeuralNetwork:
         return "Layer 0 weights:\n" + str(self.l0_weights) + "\nLayer 1 weights:\n" + str(self.l1_weights)
 
 if __name__ == "__main__":
-    test = np.array([[0,0,1],
-                     [0,1,1],
-                     [1,0,1],
-                     [1,1,1]])
-
-    test2 = np.array([0,0,1,1])
 
     # Tried out fitting a sine curve
-    net = NeuralNetwork(8, 1, 1)
+    net = NeuralNetwork(8, 2, 1)
 
-    num_points = 40
-    x_values = (np.random.uniform(-2*math.pi, 2*math.pi, num_points))
-    x_values.sort()
-    x_values = np.atleast_2d(x_values).T
+    # Test classification on XOR
+    x = [[1, 0],
+         [0, 1],
+         [0, 0],
+         [1, 1]]
 
-    # Add gaussian noise to targets
-    y_values = np.sin(x_values) + np.atleast_2d(np.random.normal(0, 0.5, num_points)).T
+    y = [1, 1, 0, 0]
 
-    net.train(x_values, y_values, 800, 0.1)
-
-    x2_values = (np.linspace(-2*math.pi, 2*math.pi, 100))
-    x2_values = np.atleast_2d(x2_values).T
-
-    #net.graphCosts()
-    net.graphPredictions(x_values, y_values, x2_values)
-
-    # Plot true sine curve
-    true_y_values = np.sin(x2_values)
-    plt.plot(x2_values, true_y_values)
-
+    net.train(x, y, 100, 0.15, True)
+    net.graphBoundary([-0.5, 1.5], [-0.5, 1.5], 0.05, 1)
+    net.train(x, y, 1000, 0.15, True)
+    net.graphBoundary([-0.1, 1.1], [-0.1, 1.1], 0.05, 2)
 
     plt.show()
