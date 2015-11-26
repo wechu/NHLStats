@@ -131,16 +131,16 @@ class NeuralNetwork:
         return
 
 
-    def graphBoundary(self, x_range, y_range, spacing, num=1):
+    def graphBoundary(self, x_range, y_range, spacing):
         xx, yy = np.meshgrid(np.arange(x_range[0], x_range[1], spacing), np.arange(y_range[0], y_range[1], spacing))
 
         preds = np.array(self.predict_mult(np.c_[xx.ravel(), yy.ravel()]))
-
-
         preds = preds.reshape(xx.shape)
-        plt.figure()
-        plt.contour(xx, yy, preds,  cmap=plt.cm.Paired, levels=[0.5])
 
+        plt.figure()
+        plt.title('Decision boundaries')
+        graph = plt.contour(xx, yy, preds,  cmap=plt.cm.Paired, levels=[0.1, 0.5, 0.9])
+        plt.clabel(graph, inline=True, fontsize=10)
 
         return
 
@@ -169,9 +169,9 @@ if __name__ == "__main__":
 
     y = [1, 1, 0, 0]
 
-    net.train(x, y, 100, 0.15, True)
-    net.graphBoundary([-0.5, 1.5], [-0.5, 1.5], 0.05, 1)
-    net.train(x, y, 1000, 0.15, True)
-    net.graphBoundary([-0.1, 1.1], [-0.1, 1.1], 0.05, 2)
+    net.train(x, y, 200, 0.15, True)
+    net.graphBoundary([-0.5, 1.5], [-0.5, 1.5], 0.05)
+    net.train(x, y, 500, 0.15, True)
+    net.graphBoundary([-0.1, 1.1], [-0.1, 1.1], 0.05)
 
     plt.show()
