@@ -16,10 +16,25 @@ with open('Team_legend.csv', 'r') as csvfile:
         team_legend.append([entry for entry in row])
 csvfile.close()
 
-print(team_legend)
 
-for i in range(4):
-  print(inputs_raw[i])
+team_index=[]
+for team in team_legend:
+    team_index.append(team[0])
+
+for game in inputs_raw:
+    game[0]=team_legend[team_index.index(game[0])][1]
+
+del team_index[:]
+for team in team_legend:
+    team_index.append(team[1])
+
+print(inputs_raw)
+
+
+
+
+# for i in range(4):
+#   print(inputs_raw[i])
 #
 # teams_inputs = np.array(inputs)[:, 0:2]  # These should not be normalized (team numbers)
 # stats_inputs = np.array(inputs)[:, 2:]
