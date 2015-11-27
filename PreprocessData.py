@@ -16,8 +16,19 @@ with open('Team_legend.csv', 'r') as csvfile:
         team_legend.append([entry for entry in row])
 csvfile.close()
 
-print(team_legend)
 
+team_index=[]
+for team in team_legend:
+    team_index.append(team[0])
+
+for game in inputs_raw:
+    game[0]=team_legend[team_index.index(game[0])][1]
+
+del team_index[:]
+for team in team_legend:
+    team_index.append(team[1])
+
+print(inputs_raw)
 
 
 
