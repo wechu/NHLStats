@@ -1,5 +1,6 @@
 import csv
 import numpy as np
+from operator import itemgetter
 
 inputs_raw = []
 with open('team_game_season_2014_2015.csv', 'r') as csvfile:
@@ -23,6 +24,14 @@ for team in team_legend:
 
 for game in inputs_raw:
     game[0]=team_legend[team_index.index(game[0])][1]
+
+    if game[1][12:14]=='vs':
+        game.insert(24,1)
+    else:
+        game.insert(24,0)
+    game[1]=game[1][0:10]
+
+inputs_raw.sort(key=itemgetter(1))
 
 del team_index[:]
 for team in team_legend:
