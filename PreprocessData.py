@@ -1,15 +1,18 @@
 import csv
 import numpy as np
+from operator import itemgetter
 
+#imports list of season games
 inputs_raw = []
 with open('team_game_season_2014_2015.csv', 'r') as csvfile:
     next(csvfile)
     reader = csv.reader(csvfile)
     for row in reader:
-        inputs_raw.append([(entry) for entry in row])
+        inputs_raw.append([entry for entry in row])
 csvfile.close()
 
-team_legend=[]
+#imports team legend
+team_legend = []
 with open('Team_legend.csv', 'r') as csvfile:
     reader = csv.reader(csvfile)
     for row in reader:
@@ -17,20 +20,49 @@ with open('Team_legend.csv', 'r') as csvfile:
 csvfile.close()
 
 
-team_index=[]
+team_index = []
 for team in team_legend:
     team_index.append(team[0])
 
 for game in inputs_raw:
-    game[0]=team_legend[team_index.index(game[0])][1]
+    game[0] = team_legend[team_index.index(game[0])][1]
 
-del team_index[:]
+    if game[1][12:14] == 'vs':
+        game.append(1)
+    else:
+        game.append(0)
+    game[1] = game[1][0:10]
+
+team_index.clear()
 for team in team_legend:
     team_index.append(team[1])
 
+inputs_raw.sort(key=itemgetter(1))
+
+date_list = []
+for game in inputs_raw:
+    date_list.append(game[1])
+
+date_numbered = [1]*len(date_list)
+date_numbered[0] = 1
+counter = 1
+for i in range(1, len(date_list)):
+    if date_list[i] == date_list[i-1]:
+        date_numbered[i] = counter
+    else:
+        counter += 1
+        date_numbered[i] = counter
+
+for i in range(0, len(inputs_raw)):
+    inputs_raw[i][1] = date_numbered[i]
+
+training_games = []
+for game in inputs_raw:
+    if game[22] == 1:
+        game.pop(3)
+        training_games.append(game[0:4])
+
 print(inputs_raw)
-
-
 
 
 # for i in range(4):
