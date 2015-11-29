@@ -29,9 +29,9 @@ for game in inputs_raw:
     game[0] = team_legend[team_index.index(game[0])][1]
 
     if game[1][12:14] == 'vs':
-        game.append(1)
+        game.append('home')
     else:
-        game.append(0)
+        game.append('away')
     game[1] = game[1][0:10]
 
 team_index.clear()
@@ -64,7 +64,7 @@ for i in range(0, len(inputs_raw)):
 #create training_game subset from input games
 training_games = []
 for game in inputs_raw:
-    if game[22] == 1:
+    if game[22] == 'home':
         game.pop(3)
         training_games.append(game[0:4])
 
