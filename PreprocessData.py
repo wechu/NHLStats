@@ -10,7 +10,8 @@ with open('team_game_season_2014_2015.csv', 'r') as csvfile:
     for row in reader:
         inputs_raw.append([entry for entry in row])
 csvfile.close()
-print(inputs_raw[1])
+
+
 #imports team legend
 team_legend = []
 with open('Team_legend.csv', 'r') as csvfile:
@@ -39,7 +40,7 @@ for team in team_legend:
     team_index.append(team[1])
 
 #sort games by date
-#inputs_raw.sort(key=itemgetter(1))
+inputs_raw.sort(key=itemgetter(1))
 
 
 #replace dates by ordered numbers
@@ -62,12 +63,11 @@ for i in range(0, len(inputs_raw)):
 
 #reducing columns in inputs_raw
 for game in inputs_raw:
-    game.pop(6)
-    game.pop(14)
-    game.pop(16)
+    game.pop(21)
     game.pop(18)
+    game.pop(15)
+    game.pop(6)
 
-print(inputs_raw[1])
 
 #create training_game subset from input games
 training_games = []
@@ -77,14 +77,27 @@ for game in inputs_raw:
 for game in training_games:
     game.pop(3)
 
-print(training_games[0])
+
+def aggregate_team_specs(date_number):
+    holder_list = []
+    for game in inputs_raw:
+        if game[0] == 'MTL' and game[1] < date_number:
+             game.pop(18)
+             game.pop(2)
+             game.pop(1)
+             game.pop(0)
+             holder_list.append(game)
+
+    print(holder_list)
 
 
 
-# def aggregate_team_specs(date_number, team_abv):
 
+    return
 
+aggregate_team_specs(3)
 
+#print(team_date_number_abv)
 
 
 
