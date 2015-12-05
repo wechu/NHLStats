@@ -87,11 +87,13 @@ class NeuralNetwork:
         return out_activations
 
     def predict_mult(self, examples):
+        # Takes a list of features and outputs the prediction of each of them
         return [self.predict(ex) for ex in examples]
 
 
     def getCost(self, X, y, addOnes=True):
         # Use mean squared error
+        # CHANGE TO CROSS ENTROPY
         total_error = 0
         for i in range(len(X)):
             total_error += ((self.predict(X[i], addOnes) - y[i])**2)/2
@@ -109,26 +111,6 @@ class NeuralNetwork:
     def sigmoid2(self, x):
         # This sigmoid is used for the output of the network (between 0 and 1)
         return 1 / (1 + np.exp(-x))
-
-    def graphPredictions(self, X, y, X2=None):
-        # Used for 1 feature data with 1 feature output (Eg: sin(x) = y)
-        # X2 is used to check x-values other than those in the training set
-        if X2 is None:
-            X2 = X
-
-        predictions = []
-        for i in range(len(X2)):
-            predictions.append(self.predict(X2[i]))
-
-        plt.figure()
-        plt.title('Comparing predictions and target')
-        plt.xlabel('x-value')
-        plt.ylabel('y-value')
-        plt.scatter(X2, predictions, c='b', marker='.', label='NN Predictions')
-        plt.scatter(X, y, c='g', marker='x', label='Target values')
-        #plt.plot(X, y, color='g')
-        plt.legend(bbox_to_anchor=(0.75, 0.95), loc=2, borderaxespad=0)
-        return
 
 
     def graphBoundary(self, x_range, y_range, spacing):
@@ -169,9 +151,9 @@ if __name__ == "__main__":
 
     y = [1, 1, 0, 0]
 
-    net.train(x, y, 200, 0.15, True)
+    net.train(x, y, 100, 0.15, True)
     net.graphBoundary([-0.5, 1.5], [-0.5, 1.5], 0.05)
-    net.train(x, y, 500, 0.15, True)
+    net.train(x, y, 1000, 0.15, True)
     net.graphBoundary([-0.1, 1.1], [-0.1, 1.1], 0.05)
 
     plt.show()
