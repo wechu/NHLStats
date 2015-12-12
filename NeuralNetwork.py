@@ -4,11 +4,13 @@ import math
 from sklearn.datasets import make_classification
 
 class NeuralNetwork:
-    def __init__(self, nb_nodes_per_layer, nb_features, nb_outputs):
+    def __init__(self, nb_nodes_per_layer, nb_features, nb_outputs, weight_decay=0.1):
 
         self.nb_nodes_per_layer = nb_nodes_per_layer
         self.nb_features = nb_features
         self.nb_outputs = nb_outputs
+
+        self.weight_decay = weight_decay
 
         # For graphing
         self.costs = []
@@ -73,10 +75,12 @@ class NeuralNetwork:
                 l0_deriv_sum += np.dot(np.atleast_2d(l1_errors_no_bias).T, np.atleast_2d(X[i]))
                 l1_deriv_sum += np.dot(np.atleast_2d(l2_errors).T, np.atleast_2d(l1_activations))
 
-            # Update weights
-            self.l0_weights -= learning_rate * l0_deriv_sum / len(X)
-            self.l1_weights -= learning_rate * l1_deriv_sum / len(X)
+            # Update weights (include weight decay)
+            l0_decay = self.weight_decay * np.insert(self.l0_weights[:, 1:], 0, 0, 1)  # don't regularize bias weights
+            l1_decay = self.weight_decay * np.insert(self.l1_weights[:, 1:], 0, 0, 1)
 
+            self.l0_weights -= learning_rate / len(X) * (l0_deriv_sum + l0_decay)
+            self.l1_weights -= learning_rate / len(X) * (l1_deriv_sum + l1_decay)
         return
 
     def predict(self, example):
@@ -100,7 +104,9 @@ class NeuralNetwork:
             pred = self.predict(X[i])
             total_error += -math.log(pred) if y[i] == 1 else -math.log(1-pred)
 
-        #total_error += self.l0_weights[:, 1:].sum()  # weight decay (don't count bias unit weights)
+        # weight decay
+        total_error += self.weight_decay / 2 * np.square(self.l0_weights[:, 1:]).sum()  # weight decay (don't count bias unit weights)
+        total_error += self.weight_decay / 2 * np.square(self.l1_weights[:, 1:]).sum()
 
         return total_error / len(X)
 
@@ -164,31 +170,37 @@ class NeuralNetwork:
         return "Layer 0 weights:\n" + str(self.l0_weights) + "\nLayer 1 weights:\n" + str(self.l1_weights)
 
 if __name__ == "__main__":
-    net = NeuralNetwork(16, 2, 1)
-    net2 = NeuralNetwork(8, 2, 1)
+    net = NeuralNetwork(8, 2, 1, weight_decay=0.2)
+    net2 = NeuralNetwork(8, 2, 1, weight_decay=0)
 
     # Test classification on random data clusters
     x, y = make_classification(n_samples=100, n_features=2, n_informative=2, n_redundant=0, n_classes=2, hypercube=False, random_state=3)
-    # net.train(x, y, 100, 0.15, True)
-    # net.graphBoundary([-0.5, 1.5], [-0.5, 1.5], 0.05)
-    net.train(x, y, 500, 0.25)
+
+    net.train(x, y, 1000, 0.25)
     net.graphBoundary(x, y, 0.05)
     print(net.costs[-1])
     #net.graphCosts()
-    print(net.classError(x, y))
+    #print(net.classError(x, y))
+    print(np.square(net.l0_weights[:, 1:]).sum())
+    print(np.square(net.l1_weights[:, 1:]).sum())
 
     print("-----")
 
-    net2.train(x, y, 500, 0.15)
+    net2.train(x, y, 1000, 0.25)
     net2.graphBoundary(x, y, 0.05)
     print(net2.costs[-1])
     #net2.graphCosts()
-    print(net2.classError(x, y))
+    #print(net2.classError(x, y))
+    print(np.square(net2.l0_weights[:, 1:]).sum())
+    print(np.square(net2.l1_weights[:, 1:]).sum())
 
     plt.show()
 
-
     # x = np.array([[7, 2, 9],
     #               [4, 5, 3]])
+    # y = x[:, 1:]
+    # print(y)
+    # z = np.insert(y, 0, 1, 1)
     # print(x)
-    # print(np.amax(x, axis=1))
+    # print(z)
+
