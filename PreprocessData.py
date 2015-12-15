@@ -2,7 +2,7 @@ import csv
 import numpy as np
 from operator import itemgetter
 
-#imports list of season games
+'''imports list of season games'''
 inputs_raw = []
 with open('team_game_season_2014_2015.csv', 'r') as csvfile:
     next(csvfile)
@@ -12,7 +12,7 @@ with open('team_game_season_2014_2015.csv', 'r') as csvfile:
 csvfile.close()
 
 
-#imports team legend
+'''imports team legend'''
 team_legend = []
 with open('Team_legend.csv', 'r') as csvfile:
     reader = csv.reader(csvfile)
@@ -25,7 +25,7 @@ team_index = []
 for team in team_legend:
     team_index.append(team[0])
 
-#replace team name by abbreviation, add home game indicator
+'''replace team name by abbreviation, add home game indicator'''
 for game in inputs_raw:
     game[0] = team_legend[team_index.index(game[0])][1]
 
@@ -39,11 +39,11 @@ team_index.clear()
 for team in team_legend:
     team_index.append(team[1])
 
-#sort games by date
+'''sort games by date'''
 inputs_raw.sort(key=itemgetter(1))
 
 
-#replace dates by ordered numbers
+'''replace dates by ordered numbers'''
 date_list = []
 for game in inputs_raw:
     date_list.append(game[1])
@@ -61,21 +61,21 @@ for i in range(1, len(date_list)):
 for i in range(0, len(inputs_raw)):
     inputs_raw[i][1] = date_numbered[i]
 
-#reducing columns in inputs_raw
+'''reducing columns in inputs_raw'''
 for game in inputs_raw:
-    game.pop(21)
-    game.pop(18)
-    game.pop(15)
-    game.pop(6)
+    game.pop(21) #FOW%
+    game.pop(18) #PK%
+    game.pop(15) #PP%
+    game.pop(6)  #ties
 
 
-#create training_game subset from input games
+'''create training_game subset from input games'''
 training_games = []
 for game in inputs_raw:
-    if game[18] == 'home': #change to 'home'
+    if game[18] == 'home':
         training_games.append(game[0:5])
 for game in training_games:
-    game.pop(3)
+    game.pop(3) #games played
 
 
 def aggregate_team_specs(date_number):
