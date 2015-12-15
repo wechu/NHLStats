@@ -4,7 +4,7 @@ import math
 from sklearn.datasets import make_classification
 
 class NeuralNetwork:
-    def __init__(self, nb_nodes_per_layer, nb_features, nb_outputs, weight_decay=0.1):
+    def __init__(self, nb_features, nb_nodes_per_layer, nb_outputs, nb_hidden_layers=1, weight_decay=0.1):
 
         self.nb_nodes_per_layer = nb_nodes_per_layer
         self.nb_features = nb_features
@@ -13,10 +13,11 @@ class NeuralNetwork:
         self.weight_decay = weight_decay
 
         # For graphing
-        self.costs = []
+        self.train_error = []
+        self.test_error = []
         self.iterations = []
 
-        np.random.seed(5)
+        #np.random.seed(5)
         # Initialize weight matrices to random values
         # Each hidden layer gets its own matrix (only 1 hidden layer for now)
         self.l0_weights = np.random.uniform(-1, 1, (nb_nodes_per_layer, nb_features + 1))
@@ -26,7 +27,7 @@ class NeuralNetwork:
         # dimensions of matrices: (number of nodes in the next layer, number of nodes in the current layer + 1)
         # add 1 to number of features for the bias unit
 
-    def train(self, X, y, iterations=100, learning_rate=0.15, showCost=False):
+    def train(self, X, y, iterations=100, learning_rate=0.35, test_X=None, test_y=None, showCost=False):
         # X and y are your data
         # X is the set of features
         # y is the set of target values
@@ -40,12 +41,16 @@ class NeuralNetwork:
         for j in range(iterations):
             # Populates the lists for cost graph
             if j % 5 == 0:
-                self.costs.append(self.getCost(X2, y))
+                self.train_error.append(self.getCost(X2, y))
                 self.iterations.append(j)
+                if showCost:
+                    print("Cost:", self.train_error[-1])
+                if test_X is not None and test_y is not None:
+                    self.test_error.append(self.getCost(test_X, test_y, False))
 
-            # Print cost function
-            if showCost and j % 10 == 0:
-                print("Cost:", self.getCost(X2, y))
+            # TESTING decaying learning rate ###
+            #if j % 100 == 0:
+            #    learning_rate *= 0.9
 
             # Initialize sum of errors
             l0_deriv_sum = np.zeros(self.l0_weights.shape)  # Add 1 to count the bias unit's error
@@ -97,7 +102,10 @@ class NeuralNetwork:
         # Takes a list of features and outputs the prediction of each of them
         return [self.predict(ex) for ex in examples]
 
-    def getCost(self, X, y):
+    def getCost(self, X, y, reg=True):
+        # Calculates the cost function on the given examples
+        # Use reg=False for test error since we don't count weight decay
+
         # Use cross entropy error
         total_error = 0
         for i in range(len(X)):
@@ -105,8 +113,9 @@ class NeuralNetwork:
             total_error += -math.log(pred) if y[i] == 1 else -math.log(1-pred)
 
         # weight decay
-        total_error += self.weight_decay / 2 * np.square(self.l0_weights[:, 1:]).sum()  # weight decay (don't count bias unit weights)
-        total_error += self.weight_decay / 2 * np.square(self.l1_weights[:, 1:]).sum()
+        if reg:
+            total_error += self.weight_decay / 2 * np.square(self.l0_weights[:, 1:]).sum()  # weight decay (don't count bias unit weights)
+            total_error += self.weight_decay / 2 * np.square(self.l1_weights[:, 1:]).sum()
 
         return total_error / len(X)
 
@@ -158,49 +167,82 @@ class NeuralNetwork:
         return
 
     def graphCosts(self, start=0):
-        # Displays graph of costs (need to run train() with showCost=True first)
+        # Displays graph of costs
         plt.figure()
         plt.title('Cost vs Iteration')
         plt.xlabel("Iteration")
         plt.ylabel('Cost')
-        plt.plot(self.iterations[start:], self.costs[start:])
+        plt.plot(self.iterations[start:], self.train_error[start:], label="Training")
+        if self.test_error:
+            plt.plot(self.iterations[start:], self.test_error[start:], label="Test")
+        plt.legend()
         return
+
+    def test(self, X, y, iterations, learning_rate, test_frac):
+        # Splits the data into a training set and a test set
+        # Prints the final training error and testing error (and the minimum test error)
+        n = int(len(X) * test_frac)
+        # Could shuffle examples first
+        self.train(X[:n], y[:n], iterations, learning_rate, X[n:], y[n:])
+
+        print("Train:", self.train_error[-1])
+        print("Test:", self.test_error[-1])
+        minErr = min(self.test_error)
+        minIter = self.iterations[self.test_error.index(minErr)]
+        print("Min:", minErr, "at", minIter, "iters")
+
+        return minErr, minIter, self.test_error[-1]
 
     def __repr__(self):
         return "Layer 0 weights:\n" + str(self.l0_weights) + "\nLayer 1 weights:\n" + str(self.l1_weights)
 
+
 if __name__ == "__main__":
-    net = NeuralNetwork(8, 2, 1, weight_decay=0.2)
-    net2 = NeuralNetwork(8, 2, 1, weight_decay=0)
+    x, y = make_classification(n_samples=200, n_features=8, n_informative=2, n_redundant=2, n_classes=2, hypercube=True)
 
-    # Test classification on random data clusters
-    x, y = make_classification(n_samples=100, n_features=2, n_informative=2, n_redundant=0, n_classes=2, hypercube=False, random_state=3)
+    net = NeuralNetwork(8, 16, 1, weight_decay=0.4)
 
-    net.train(x, y, 1000, 0.25)
-    net.graphBoundary(x, y, 0.05)
-    print(net.costs[-1])
-    #net.graphCosts()
-    #print(net.classError(x, y))
-    print(np.square(net.l0_weights[:, 1:]).sum())
-    print(np.square(net.l1_weights[:, 1:]).sum())
 
-    print("-----")
 
-    net2.train(x, y, 1000, 0.25)
-    net2.graphBoundary(x, y, 0.05)
-    print(net2.costs[-1])
-    #net2.graphCosts()
-    #print(net2.classError(x, y))
-    print(np.square(net2.l0_weights[:, 1:]).sum())
-    print(np.square(net2.l1_weights[:, 1:]).sum())
+
+    # minsErr = []
+    # minsIter = []
+    #
+    # tests = [2*i for i in range(4, 20)]
+    # for j in tests:
+    #     print("--- nodes =", j)
+    #     net = NeuralNetwork(8, j, 1, weight_decay=0.4)
+    #
+    #     temp = net.test(x, y, 300, 1.5, 0.8)
+    #     minsErr.append(temp[0])
+    #     minsIter.append(temp[1])
+    #
+    # print(minsErr)
+    # print(minsIter)
+    # plt.plot(tests, minsErr, label="Error")
+    # plt.title("Error vs nodes")
+    # plt.figure()
+    # plt.plot(tests, minsIter, label="Iter")
+    # plt.title("Iter vs nodes")
 
     plt.show()
 
-    # x = np.array([[7, 2, 9],
-    #               [4, 5, 3]])
-    # y = x[:, 1:]
-    # print(y)
-    # z = np.insert(y, 0, 1, 1)
-    # print(x)
-    # print(z)
+def testRuns(n):
+    # Runs n tests and finds the average minimum test error
+    min_errs =[]
+    errs = []
+    for i in range(n):
+        # Test classification on random data clusters
+        x, y = make_classification(n_samples=200, n_features=8, n_informative=2, n_redundant=2, n_classes=2, hypercube=True)
 
+        net = NeuralNetwork(8, 16, 1, weight_decay=0.4)
+        temp = net.test(x, y, 200, 1.0, 0.8)
+        min_errs.append(temp[0])
+        errs.append(temp[2])
+
+    print(min_errs)
+    print("Avg min:", sum(min_errs)/n)
+    print(errs)
+    print("Avg final:", sum(errs)/n)
+
+    return
