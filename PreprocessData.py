@@ -49,8 +49,8 @@ for game in inputs_raw:
     date_list.append(game[1])
 
 date_numbered = [1]*len(date_list)
-date_numbered[0] = 1
-counter = 1
+date_numbered[0] = 0
+counter = 0
 for i in range(1, len(date_list)):
     if date_list[i] == date_list[i-1]:
         date_numbered[i] = counter
@@ -69,38 +69,60 @@ for game in inputs_raw:
     game.pop(6)  #ties
 
 
-'''create training_game subset from input games'''
-training_games = []
-for game in inputs_raw:
-    if game[18] == 'home':
-        training_games.append(game[0:5])
-for game in training_games:
-    game.pop(3) #games played
+'''building matrix to aggregate '''
+matrix = []
 
-
-def aggregate_team_specs(date_number):
-    holder_list = []
+for i in range(0,2):
     for game in inputs_raw:
-        if game[0] == 'MTL' and game[1] < date_number:
-             game.pop(18)
-             game.pop(2)
-             game.pop(1)
-             game.pop(0)
-             holder_list.append(game)
-
-    print(holder_list)
+        if game[1] == i:
+            matrix.append(game)
+    matrix.append(i)
 
 
 
-
-    return
-
-aggregate_team_specs(3)
-
-#print(team_date_number_abv)
-
-
-
+print(inputs_raw)
+#
+#
+# '''create training_game subset from input games'''
+# training_games = []
+# for game in inputs_raw:
+#     if game[18] == 'home':
+#         training_games.append(game[0:5])
+# for game in training_games:
+#     game.pop(3) #games played
+#
+# for game in inputs_raw:
+#     game.pop(18) #home/away indicator
+#     game.pop(2) #opposing team
+#
+# home_team_index = []
+# away_team_index = []
+# time_index = []
+#
+# for match in training_games:
+#     home_team_index.append(match[0:2])
+#     away_team_index.append(match[2:0:-1])
+#
+#
+# inputs_raw_index = []
+#
+# for game in inputs_raw:
+#     inputs_raw_index.append(game[0:2])
+#
+# import_matrix = []
+#
+# for i in range(0, 2):
+#     import_matrix.append(inputs_raw[inputs_raw_index.index(home_team_index[i])])
+#
+#
+# print(home_team_index)
+# print(away_team_index)
+# print(training_games)
+# print(inputs_raw)
+# print(inputs_raw_index)
+#
+# print(import_matrix)
+#
 
 # for i in range(4):
 #   print(inputs_raw[i])
