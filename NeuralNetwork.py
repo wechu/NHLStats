@@ -1,7 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import math
-from sklearn.datasets import make_classification
+#from sklearn.datasets import make_classification
+import random
 
 class NeuralNetwork:
     def __init__(self, nb_nodes_per_layer, nb_features, nb_outputs, weight_decay=0.1):
@@ -15,8 +16,9 @@ class NeuralNetwork:
         # For graphing
         self.costs = []
         self.iterations = []
+        self.test_error = []
 
-        np.random.seed(5)
+        #np.random.seed(5)
         # Initialize weight matrices to random values
         # Each hidden layer gets its own matrix (only 1 hidden layer for now)
         self.l0_weights = np.random.uniform(-1, 1, (nb_nodes_per_layer, nb_features + 1))
@@ -26,7 +28,7 @@ class NeuralNetwork:
         # dimensions of matrices: (number of nodes in the next layer, number of nodes in the current layer + 1)
         # add 1 to number of features for the bias unit
 
-    def train(self, X, y, iterations=100, learning_rate=0.15, showCost=False):
+    def train(self, X, y, iterations=100, learning_rate=0.15, test_x=None, test_y=None, showCost=False):
         # X and y are your data
         # X is the set of features
         # y is the set of target values
@@ -40,8 +42,13 @@ class NeuralNetwork:
         for j in range(iterations):
             # Populates the lists for cost graph
             if j % 5 == 0:
+
+                self.test_error.append(self.getCost(test_x, test_y))
                 self.costs.append(self.getCost(X2, y))
                 self.iterations.append(j)
+
+            if j % 50 == 0:
+                learning_rate *= 0.8
 
             # Print cost function
             if showCost and j % 10 == 0:
@@ -164,43 +171,50 @@ class NeuralNetwork:
         plt.xlabel("Iteration")
         plt.ylabel('Cost')
         plt.plot(self.iterations[start:], self.costs[start:])
+        plt.plot(self.iterations[start:], self.test_error[start:])
         return
 
     def __repr__(self):
         return "Layer 0 weights:\n" + str(self.l0_weights) + "\nLayer 1 weights:\n" + str(self.l1_weights)
 
+
+    def test(self, X, y, iterations, learning_rate, test_frac):
+        # Splits the data into a training set and a test set
+        # Prints the final training error and testing error (and the minimum test error)
+        n = int(len(X) * test_frac)
+        # Could shuffle examples first
+
+        self.train(X[:n], y[:n], iterations, learning_rate, X[n:], y[n:])
+
+        print("Train:", self.costs[-1])
+        print("Test:", self.test_error[-1])
+        minErr = min(self.test_error)
+        minIter = self.iterations[self.test_error.index(minErr)]
+        print("Min:", minErr, "at", minIter, "iters")
+
+        print('test class error', self.classError(X[n:], y[n:]))
+        print('train class error', self.classError(X[:n], y[:n]))
+
+        return minErr, minIter, self.test_error[-1]
+
 if __name__ == "__main__":
-    net = NeuralNetwork(8, 2, 1, weight_decay=0.2)
-    net2 = NeuralNetwork(8, 2, 1, weight_decay=0)
+    net = NeuralNetwork(96, 96, 1, weight_decay=10)
 
-    # Test classification on random data clusters
-    x, y = make_classification(n_samples=100, n_features=2, n_informative=2, n_redundant=0, n_classes=2, hypercube=False, random_state=3)
+    x = []
+    y = []
 
-    net.train(x, y, 1000, 0.25)
-    net.graphBoundary(x, y, 0.05)
-    print(net.costs[-1])
-    #net.graphCosts()
-    #print(net.classError(x, y))
-    print(np.square(net.l0_weights[:, 1:]).sum())
-    print(np.square(net.l1_weights[:, 1:]).sum())
+    input = np.genfromtxt(
+    'InputData2014-15_Final.csv',           # file name
+    delimiter=',',          # column delimiter
+    dtype='float32',        # data type
+    filling_values=0,       # fill missing values with 0
+    )
 
-    print("-----")
+    random.shuffle(input)
+    x = input[:, 1:]
+    y = input[:, 0]
 
-    net2.train(x, y, 1000, 0.25)
-    net2.graphBoundary(x, y, 0.05)
-    print(net2.costs[-1])
-    #net2.graphCosts()
-    #print(net2.classError(x, y))
-    print(np.square(net2.l0_weights[:, 1:]).sum())
-    print(np.square(net2.l1_weights[:, 1:]).sum())
+    net.test(x, y, 2000, 0.4, 0.2)
 
+    net.graphCosts(50)
     plt.show()
-
-    # x = np.array([[7, 2, 9],
-    #               [4, 5, 3]])
-    # y = x[:, 1:]
-    # print(y)
-    # z = np.insert(y, 0, 1, 1)
-    # print(x)
-    # print(z)
-

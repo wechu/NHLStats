@@ -162,8 +162,6 @@ for agg_game in data:
     agg_game.append((agg_game[87]-agg_game[88])/agg_game[87])
     agg_game.append(agg_game[89]/(agg_game[89]+agg_game[90]))
 
-print(data)
-
 teams_inputs = np.array(data)[:, 0:61]  # These should not be normalized (team numbers)
 stats_inputs = np.array(data)[:, 61:]
 
@@ -184,8 +182,13 @@ final_inputs = np.concatenate((teams_inputs, normalized_inputs), 1)
 # for i in range(4):
 #     print(final_inputs[i])
 
-file = open('InputData2014-15_Final.csv', 'w')
-writer = csv.writer(file, lineterminator='\n')
-for row in final_inputs:
-    writer.writerow(["{:.15f}".format(x) for x in row])  # Need to preserve as many decimals as possible
-file.close()
+np.savetxt(
+    'InputData2014-15_Final.csv',           # file name
+    final_inputs,                # array to save
+    fmt='%.15f',             # formatting, 2 digits in this case
+    delimiter=',',          # column delimiter
+    newline='\n',           # new line character
+    comments='# ',          # character to use for comments
+  )
+
+print('end')
