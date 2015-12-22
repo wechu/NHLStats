@@ -1,7 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import math
-from sklearn.datasets import make_classification
+#from sklearn.datasets import make_classification
+import random
 
 class NeuralNetwork:
     def __init__(self, nb_features, nb_nodes_per_layer, nb_outputs, nb_hidden_layers=1, weight_decay=0.5):
@@ -50,9 +51,11 @@ class NeuralNetwork:
                 if test_X is not None and test_y is not None:
                     self.test_error.append(self.getCost(test_X, test_y))
 
+
             # TESTING decaying learning rate ###
             #if j % 100 == 0:
             #    learning_rate *= 0.9
+
 
             # Initialize sum of errors
             hid_deriv_sum = [np.zeros(matrix.shape) for matrix in self.hid_weights]
@@ -214,11 +217,13 @@ class NeuralNetwork:
         plt.title('Cost vs Iteration')
         plt.xlabel("Iteration")
         plt.ylabel('Cost')
+
         plt.plot(self.iterations[start:], self.train_error[start:], label="Training")
         if self.test_error:
             plt.plot(self.iterations[start:], self.test_error[start:], label="Test")
         plt.legend()
         return
+
 
     def test(self, X, y, iterations, learning_rate, test_frac):
         # Splits the data into a training set and a test set
@@ -241,8 +246,6 @@ class NeuralNetwork:
 
     def __repr__(self):
         return "Hidden layer weights:\n" + str(self.hid_weights) + "\nOutput layer weights:\n" + str(self.out_weights)
-
-
 
 def testRuns(n, x, y):
     # Runs n tests and finds the average errors
@@ -267,13 +270,25 @@ def testRuns(n, x, y):
     return
 
 if __name__ == "__main__":
-    x, y = make_classification(n_samples=500, n_features=4, n_informative=2, n_redundant=2, n_classes=2, hypercube=True)
+    net = NeuralNetwork(96, 96, 1, weight_decay=10)
 
-    net = NeuralNetwork(4, 8, 1, 3, weight_decay=3)
+    x = []
+    y = []
 
-    net.test(x, y, 500, 0.3, 0.2)
-    net.graphCosts(5)
-    #testRuns(5, x, y)
+    input = np.genfromtxt(
+    'InputData2014-15_Final.csv',           # file name
+    delimiter=',',          # column delimiter
+    dtype='float32',        # data type
+    filling_values=0,       # fill missing values with 0
+    )
+
+    random.shuffle(input)
+    x = input[:, 1:]
+    y = input[:, 0]
+
+    net.test(x, y, 2000, 0.4, 0.2)
+
+    net.graphCosts(50)
 
     # minsErr = []
     # minsIter = []
@@ -294,5 +309,4 @@ if __name__ == "__main__":
     # plt.figure()
     # plt.plot(tests, minsIter, label="Iter")
     # plt.title("Iter vs nodes")
-
     plt.show()
