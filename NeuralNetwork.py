@@ -6,7 +6,7 @@ import random
 
 class NeuralNetwork:
     def __init__(self, nb_features, nb_nodes_per_layer, nb_outputs, nb_hidden_layers=1, weight_decay=0.5):
-
+        # Parameters
         self.weight_decay = weight_decay
 
         # For graphing
@@ -17,7 +17,6 @@ class NeuralNetwork:
         #np.random.seed(5)
         # Initialize weight matrices to random values
         # Each hidden layer gets its own matrix
-
         # Other hidden layer weights
         self.hid_weights = [np.random.uniform(-1, 1, (nb_nodes_per_layer, nb_nodes_per_layer + 1)) for i in range(nb_hidden_layers - 1)]
 
@@ -51,11 +50,9 @@ class NeuralNetwork:
                 if test_X is not None and test_y is not None:
                     self.test_error.append(self.getCost(test_X, test_y))
 
-
             # TESTING decaying learning rate ###
-            #if j % 100 == 0:
-            #    learning_rate *= 0.9
-
+            if j % 100 == 0:
+                learning_rate *= 0.7
 
             # Initialize sum of errors
             hid_deriv_sum = [np.zeros(matrix.shape) for matrix in self.hid_weights]
@@ -206,7 +203,6 @@ class NeuralNetwork:
         graph = plt.contour(xx, yy, preds,  cmap=plt.cm.Paired, levels=[0.1, 0.5, 0.9])
         plt.clabel(graph, inline=True, fontsize=10)
 
-
         plt.scatter(x_data[:, 0], x_data[:, 1], c=t_data, cmap=plt.cm.Paired)
 
         return
@@ -253,8 +249,8 @@ def testRuns(n, x, y):
     final_errs = []
     train_errs = []
     for i in range(n):
-        net = NeuralNetwork(2, 8, 1, 4, weight_decay=1)
-        temp = net.test(x, y, 500, 0.3, 0.2)
+        net = NeuralNetwork(96, 32, 1, 2, weight_decay=16)
+        temp = net.test(x, y, 300, 0.1, 0.2)
 
         min_errs.append(temp[0])
         final_errs.append(temp[1])
@@ -270,10 +266,7 @@ def testRuns(n, x, y):
     return
 
 if __name__ == "__main__":
-    net = NeuralNetwork(96, 96, 1, weight_decay=10)
-
-    x = []
-    y = []
+    net = NeuralNetwork(96, 64, 1, nb_hidden_layers=2, weight_decay=6)
 
     input = np.genfromtxt(
     'InputData2014-15_Final.csv',           # file name
@@ -282,13 +275,14 @@ if __name__ == "__main__":
     filling_values=0,       # fill missing values with 0
     )
 
+    random.seed(5)
     random.shuffle(input)
     x = input[:, 1:]
     y = input[:, 0]
 
-    net.test(x, y, 2000, 0.4, 0.2)
+    net.test(x, y, 1000, 0.15, 0.2)
 
-    net.graphCosts(50)
+    net.graphCosts(5)
 
     # minsErr = []
     # minsIter = []
