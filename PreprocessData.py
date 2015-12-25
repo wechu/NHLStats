@@ -92,18 +92,26 @@ for game in training_games:
     for row in inputs_raw:
         if game[1] == row[1]:
             if game[0] == row[0]:
+                data[-1][0:0] = aggregate_team[team_index.index(row[0])]  # Note we enter the game before aggregating to not include the results of the game in the inputs
                 for i in range(len(aggregate_team[0])):
                     aggregate_team[team_index.index(row[0])][i] += int(row[i+2])
-                data[-1][0:0] = aggregate_team[team_index.index(row[0])]
 
             if game[2] == row[0]:
+                data[-1].extend(aggregate_team[team_index.index(row[0])])
                 for i in range(len(aggregate_team[0])):
                     aggregate_team[team_index.index(row[0])][i] += int(row[i+2])
 
-                data[-1].extend(aggregate_team[team_index.index(row[0])])
     data[-1][0:0] = [int(team_legend[team_index.index(game[2])][i]) for i in range(2, len(team_legend[0]))]
     data[-1][0:0] = [int(team_legend[team_index.index(game[0])][i]) for i in range(2, len(team_legend[0]))]
     data[-1].insert(0, int(game[3]))
+
+# for i in range(30):
+#     print(data[i][61:], training_games[i])
+#     if i== 20:
+#         print("-----------")
+# Exclude a few games at the beginning of the season to avoid games where the team stats are all 0
+nb_skipped = 20
+data = data[nb_skipped:]
 
 
 #data structure:
