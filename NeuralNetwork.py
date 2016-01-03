@@ -290,4 +290,5 @@ class NeuralNetwork:
                "\tWeight decay: {0:.3f}".format(self.weight_decay)
 
 if __name__ == "__main__":
+
     pass
