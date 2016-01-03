@@ -224,7 +224,7 @@ class NeuralNetwork:
     def test(self, X, y, iterations, learning_rate, test_frac):
         # Splits the data into a training set and a test set
         # Prints the final training error and testing error (and the minimum test error)
-        n = int(len(X) * test_frac)
+        n = int(len(X) * (1 - test_frac))
         # Could shuffle examples first
 
         self.train(X[:n], y[:n], iterations, learning_rate, X[n:], y[n:])
@@ -239,6 +239,42 @@ class NeuralNetwork:
         print("Test (class):", self.classError(X[n:], y[n:]))
 
         return minErr, self.test_error[-1], self.train_error[-1]
+
+    def testProbBuckets(self, X, y, test_frac):
+        # Test probability buckets
+        n = int(len(X) * (1 - test_frac))
+
+        preds = self.predict_mult(X)
+
+        nb_buckets = 10
+
+        freq_probs_test = [0] * nb_buckets
+        freq_wins_test = [0] * nb_buckets
+
+        for x in range(n, len(preds)):
+            for i in range(nb_buckets):
+                if preds[x] >= i / nb_buckets and preds[x] < (i+1) / nb_buckets:
+                    freq_probs_test[i] += 1
+                    freq_wins_test[i] += int(y[x])
+
+        freq_probs_train = [0] * nb_buckets
+        freq_wins_train = [0] * nb_buckets
+
+        for x in range(n):
+            for i in range(nb_buckets):
+                if preds[x] >= i / nb_buckets and preds[x] < (i+1) / nb_buckets:
+                    freq_probs_train[i] += 1
+                    freq_wins_train[i] += int(y[x])
+
+        probs_test = [freq_wins_test[i]/ freq_probs_test[i] for i in range(nb_buckets)]
+        print("Freq test:")
+        print(freq_probs_test)
+        print(freq_wins_test)
+        print(probs_test)
+        print("Freq train:")
+        print(freq_probs_train)
+        print(freq_wins_train)
+
 
     def __repr__(self):
         return "Hidden layer weights:\n" + str(self.hid_weights) + "\nOutput layer weights:\n" + str(self.out_weights)
@@ -266,7 +302,7 @@ def testRuns(n, x, y):
     return
 
 if __name__ == "__main__":
-    net = NeuralNetwork(96, 64, 1, nb_hidden_layers=2, weight_decay=6)
+    net = NeuralNetwork(96, 64, 1, nb_hidden_layers=1, weight_decay=6)
 
     input = np.genfromtxt(
     'InputData2014-15_Final.csv',           # file name
@@ -275,14 +311,18 @@ if __name__ == "__main__":
     filling_values=0,       # fill missing values with 0
     )
 
-    random.seed(5)
+    random.seed()
     random.shuffle(input)
     x = input[:, 1:]
     y = input[:, 0]
 
-    net.test(x, y, 1000, 0.15, 0.2)
+    net.test(x, y, 500, 0.15, 0.3)
 
-    net.graphCosts(5)
+    net.testProbBuckets(x, y, 0.3)
+    net.graphCosts()
+
+    # x = [1, 2, 3, 4, 5]
+    # print(x[3:])
 
     # minsErr = []
     # minsIter = []
