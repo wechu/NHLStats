@@ -266,15 +266,21 @@ class NeuralNetwork:
                     freq_probs_train[i] += 1
                     freq_wins_train[i] += int(y[x])
 
-        probs_test = [freq_wins_test[i]/ freq_probs_test[i] for i in range(nb_buckets)]
+
         print("Freq test:")
         print(freq_probs_test)
         print(freq_wins_test)
-        print(probs_test)
         print("Freq train:")
         print(freq_probs_train)
         print(freq_wins_train)
 
+        try:
+            probs_test = [freq_wins_test[i]/ freq_probs_test[i] for i in range(nb_buckets)]
+            probs_train = [freq_wins_train[i]/ freq_probs_train[i] for i in range(nb_buckets)]
+            print(probs_test)
+            print(probs_train)
+        except:
+            pass
 
     def __repr__(self):
         return "Hidden layer weights:\n" + str(self.hid_weights) + "\nOutput layer weights:\n" + str(self.out_weights)
@@ -285,12 +291,13 @@ def testRuns(n, x, y):
     final_errs = []
     train_errs = []
     for i in range(n):
-        net = NeuralNetwork(96, 32, 1, 2, weight_decay=16)
-        temp = net.test(x, y, 300, 0.1, 0.2)
+        net = NeuralNetwork(96, 32, 1, 2, weight_decay=25)
+        temp = net.test(x, y, 2000, 0.25, 0.3)
 
         min_errs.append(temp[0])
         final_errs.append(temp[1])
         train_errs.append(temp[2])
+        net.testProbBuckets(x, y, 0.3)
 
     print(min_errs)
     print("Avg min:", sum(min_errs)/n)
@@ -302,7 +309,7 @@ def testRuns(n, x, y):
     return
 
 if __name__ == "__main__":
-    net = NeuralNetwork(96, 64, 1, nb_hidden_layers=1, weight_decay=6)
+    net = NeuralNetwork(96, 32, 1, nb_hidden_layers=2, weight_decay=25)
 
     input = np.genfromtxt(
     'InputData2014-15_Final.csv',           # file name
@@ -316,10 +323,10 @@ if __name__ == "__main__":
     x = input[:, 1:]
     y = input[:, 0]
 
-    net.test(x, y, 500, 0.15, 0.3)
-
-    net.testProbBuckets(x, y, 0.3)
-    net.graphCosts()
+    # net.test(x, y, 1000, 0.25, 0.3)
+    # net.graphCosts(5)
+    # net.testProbBuckets(x, y, 0.3)
+    testRuns(30, x, y)
 
     # x = [1, 2, 3, 4, 5]
     # print(x[3:])
