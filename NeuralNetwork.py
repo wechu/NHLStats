@@ -8,8 +8,12 @@ class NeuralNetwork:
     def __init__(self, nb_features, nb_nodes_per_layer, nb_outputs, nb_hidden_layers=1, weight_decay=0.5):
         # Parameters
         self.weight_decay = weight_decay
+
+        self.nb_features = nb_features
         self.nb_nodes_per_layer = nb_nodes_per_layer
+        self.nb_outputs = nb_outputs
         self.nb_hidden_layers = nb_hidden_layers
+
 
         # For graphing
         self.train_error = []
@@ -20,16 +24,26 @@ class NeuralNetwork:
         # Initialize weight matrices to random values
         # Each hidden layer gets its own matrix
         # Other hidden layer weights
-        self.hid_weights = [np.random.uniform(-1, 1, (nb_nodes_per_layer, nb_nodes_per_layer + 1)) for i in range(nb_hidden_layers - 1)]
+        self.hid_weights = [np.random.uniform(-1, 1, (self.nb_nodes_per_layer, self.nb_nodes_per_layer + 1)) for i in range(self.nb_hidden_layers - 1)]
 
         # First hidden layer weights
-        self.hid_weights.insert(0, np.random.uniform(-1, 1, (nb_nodes_per_layer, nb_features + 1)))
+        self.hid_weights.insert(0, np.random.uniform(-1, 1, (self.nb_nodes_per_layer, self.nb_features + 1)))
 
         # Output layer weights
-        self.out_weights = np.random.uniform(-1, 1, (nb_outputs, nb_nodes_per_layer + 1))
+        self.out_weights = np.random.uniform(-1, 1, (self.nb_outputs, self.nb_nodes_per_layer + 1))
 
         # dimensions of matrices: (number of nodes in the next layer, number of nodes in the current layer + 1)
         # add 1 to number of features for the bias unit
+
+    def reset(self):
+        # Reinitializes all the parameters
+        self.train_error = []
+        self.test_error = []
+        self.iterations = []
+
+        self.hid_weights = [np.random.uniform(-1, 1, (self.nb_nodes_per_layer, self.nb_nodes_per_layer + 1)) for i in range(self.nb_hidden_layers - 1)]
+        self.hid_weights.insert(0, np.random.uniform(-1, 1, (self.nb_nodes_per_layer, self.nb_features + 1)))
+        self.out_weights = np.random.uniform(-1, 1, (self.nb_outputs, self.nb_nodes_per_layer + 1))
 
     def train(self, X, y, iterations=100, learning_rate=0.35, test_X=None, test_y=None, showCost=False):
         # X and y are your data
@@ -243,31 +257,36 @@ class NeuralNetwork:
 
         return minErr, self.test_error[-1], self.train_error[-1]
 
-    def testProbBuckets(self, X, y, test_frac):
+    def testProbBuckets(self, X, y, test_frac=0, X_test=None, y_test=None):
         # Test probability buckets
         # This assumes we have trained before
 
         n = int(len(X) * (1 - test_frac))
 
-        preds = self.predict_mult(X)
+        if X_test is None and y_test is None:
+            X_test = X[n:]
+            y_test = y[n:]
+
+        preds_train = self.predict_mult(X[:n])
+        preds_test = self.predict_mult(X_test)
 
         nb_buckets = 10
 
         freq_probs_test = [0] * nb_buckets
         freq_wins_test = [0] * nb_buckets
 
-        for x in range(n, len(preds)):
+        for x in range(len(preds_test)):
             for i in range(nb_buckets):
-                if preds[x] >= i / nb_buckets and preds[x] < (i+1) / nb_buckets:
+                if preds_test[x] >= i / nb_buckets and preds_test[x] < (i+1) / nb_buckets:
                     freq_probs_test[i] += 1
                     freq_wins_test[i] += int(y[x])
 
         freq_probs_train = [0] * nb_buckets
         freq_wins_train = [0] * nb_buckets
 
-        for x in range(n):
+        for x in range(len(preds_train)):
             for i in range(nb_buckets):
-                if preds[x] >= i / nb_buckets and preds[x] < (i+1) / nb_buckets:
+                if preds_train[x] >= i / nb_buckets and preds_train[x] < (i+1) / nb_buckets:
                     freq_probs_train[i] += 1
                     freq_wins_train[i] += int(y[x])
 
@@ -277,12 +296,12 @@ class NeuralNetwork:
         print("Freq test:")
         print(freq_probs_test)
         print(freq_wins_test)
-        print(probs_test)
+        print(["{0:.2f}".format(x) for x in probs_test])
 
         print("Freq train:")
         print(freq_probs_train)
         print(freq_wins_train)
-        print(probs_train)
+        print(["{0:.2f}".format(x) for x in probs_train])
 
 
     def __repr__(self):

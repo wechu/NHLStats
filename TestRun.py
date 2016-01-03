@@ -8,10 +8,10 @@ import math
 
 
 
-def crossValidate(x, y, nb_folds):
+def crossValidate(net, x, y, nb_folds):
     # Splits the data into nb_folds batches using each batch as a testing set in turn
     nb_per_fold = math.ceil(len(y) / nb_folds)  # round up so last batch is smaller
-    print(nb_per_fold)
+
     min_test_errs = []
     test_errs = []
     train_errs = []
@@ -26,16 +26,16 @@ def crossValidate(x, y, nb_folds):
         x_train = np.concatenate((x[:i*nb_per_fold], x[(i+1)*nb_per_fold:]), axis=0)
         y_train = np.concatenate((y[:i*nb_per_fold], y[(i+1)*nb_per_fold:]), axis=0)
 
-        net = nn.NeuralNetwork(96, 32, 1, 2, weight_decay=20)
-
-        temp = net.test(x_train, y_train, 100, 0.25, X_test=x_test, y_test=y_test)
+        temp = net.test(x_train, y_train, 500, 0.25, X_test=x_test, y_test=y_test)
 
         min_test_errs.append(temp[0])
         test_errs.append(temp[1])
         train_errs.append(temp[2])
-        net.testProbBuckets()
+
+        net.testProbBuckets(x_train, y_train, X_test=x_test, y_test=y_test)
 
     print("\n----------")
+    print(net)
     print(min_test_errs)
     print("Avg min:", sum(min_test_errs)/nb_folds)
     print(test_errs)
@@ -45,7 +45,7 @@ def crossValidate(x, y, nb_folds):
 
     return
 
-def testRuns(n, x, y):
+def testRuns(net, n, x, y):
     # Runs n tests and finds the average errors
     # Each run is
     min_errs =[]
@@ -53,7 +53,6 @@ def testRuns(n, x, y):
     train_errs = []
     for i in range(n):
         print("--- Run " + str(i+1) + " ---")
-        net = nn.NeuralNetwork(96, 32, 1, 2, weight_decay=25)
         temp = net.test(x, y, 2000, 0.25, 0.3)
 
         min_errs.append(temp[0])
@@ -72,21 +71,19 @@ def testRuns(n, x, y):
 
 if __name__ == '__main__':
 
-    net = nn.NeuralNetwork(96, 32, 1, nb_hidden_layers=2, weight_decay=25)
-
     input = np.genfromtxt(
     'InputData2014-15_Final.csv',           # file name
     delimiter=',',          # column delimiter
     dtype='float64',        # data type
     filling_values=0,       # fill missing values with 0
     )
-
     random.seed()
     random.shuffle(input)
     x = input[:, 1:]
     y = input[:, 0]
 
-    crossValidate(x, y, 10)
+    net = nn.NeuralNetwork(96, 32, 1, nb_hidden_layers=2, weight_decay=25)
+    crossValidate(net, x, y, 10)
 
     plt.show()
 
