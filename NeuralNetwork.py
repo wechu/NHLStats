@@ -55,9 +55,17 @@ class NeuralNetwork:
         # Add column of ones to X for the bias unit
         X = np.insert(X, 0, 1, 1)
 
-        # Used for momentum
+        # Used for Adadelta
+        hid_sq_change = [np.zeros(matrix.shape) for matrix in self.hid_weights]
+        out_sq_change = np.zeros(self.out_weights.shape)
+        hid_sq_deriv = [np.zeros(matrix.shape) for matrix in self.hid_weights]
+        out_sq_deriv = np.zeros(self.out_weights.shape)
+        ada_decay = 0.95
+        epsilon = 0.00000001
         hid_deriv = [np.zeros(matrix.shape) for matrix in self.hid_weights]
         out_deriv = np.zeros(self.out_weights.shape)
+        hid_change = [np.zeros(matrix.shape) for matrix in self.hid_weights]
+        out_change = np.zeros(self.out_weights.shape)
 
         for j in range(iterations):
             # Populates the lists for cost graph
@@ -68,11 +76,6 @@ class NeuralNetwork:
                     print("Cost:", self.train_error[-1])
                 if test_X is not None and test_y is not None:
                     self.test_error.append(self.getCost(test_X, test_y))
-
-            # TESTING decaying learning rate ###
-            if j % 50 == 0 and learning_rate >= 0.01:
-                learning_rate *= 0.7
-                #print(learning_rate)
 
             # TESTING early stopping
             if j >= 100 and j % 50 == 0:
@@ -85,8 +88,8 @@ class NeuralNetwork:
                     break
 
             # Initialize sum of errors
-            hid_deriv_sum = [np.zeros(matrix.shape) for matrix in self.hid_weights]
-            out_deriv_sum = np.zeros(self.out_weights.shape)
+            hid_deriv_batch = [np.zeros(matrix.shape) for matrix in self.hid_weights]
+            out_deriv_batch = np.zeros(self.out_weights.shape)
 
             # Loop over data examples
             for i in range(len(X)):
@@ -121,36 +124,48 @@ class NeuralNetwork:
 
                 # Update sum of errors
                 # Hidden layer 1
-                hid_deriv_sum[0] += np.dot(np.atleast_2d(hid_errors[0]).T, np.atleast_2d(X[i]))
+                hid_deriv_batch[0] += np.dot(np.atleast_2d(hid_errors[0]).T, np.atleast_2d(X[i]))
 
                 # Other hidden layers
                 for k in range(1, len(self.hid_weights)):
-                    hid_deriv_sum[k] += np.dot(np.atleast_2d(hid_errors[k]).T, np.atleast_2d(hid_activations[k-1]))
+                    hid_deriv_batch[k] += np.dot(np.atleast_2d(hid_errors[k]).T, np.atleast_2d(hid_activations[k-1]))
 
                 # Output layer
-                out_deriv_sum += np.dot(np.atleast_2d(out_errors).T, np.atleast_2d(hid_activations[-1]))
+                out_deriv_batch += np.dot(np.atleast_2d(out_errors).T, np.atleast_2d(hid_activations[-1]))
 
-            # Include weight decay
+            # Compute weight decay
             hid_decay = [self.weight_decay * np.insert(w[:, 1:], 0, 0, 1) for w in self.hid_weights]
             out_decay = self.weight_decay * np.insert(self.out_weights[:, 1:], 0, 0, 1)  # don't regularize bias weights
 
-            # Adjust gradient using momentum ### Try RMSProp later
-            momentum = 0.5  # part of the previous gradients is retained
-
-            if j % 20 == 0 and momentum < 0.99:
-                momentum *= 1.1
-
+            # Compute update using Adadelta
+            # Note there is no learning rate
+            # Compute gradient
             for k in range(len(self.hid_weights)):
-                hid_deriv[k] = momentum * hid_deriv[k] + (hid_deriv_sum[k] + hid_decay[k]) / len(X)
-            out_deriv = momentum * out_deriv + (out_deriv_sum + out_decay) / len(X)
+                hid_deriv[k] = (hid_deriv_batch[k] + hid_decay[k]) / len(X)
+            out_deriv = (out_deriv_batch + out_decay) / len(X)
 
+            # Accumulate gradient
+            for k in range(len(self.hid_weights)):
+                hid_sq_deriv[k] = ada_decay * hid_sq_deriv[k] + (1-ada_decay) * np.square(hid_deriv[k])
+            out_sq_deriv = ada_decay * out_sq_deriv + (1-ada_decay) * np.square(out_deriv)
+
+            # Compute update
+            for k in range(len(self.hid_weights)):
+                hid_change[k] = - np.sqrt(hid_sq_change[k] + epsilon) / np.sqrt(hid_sq_deriv[k] + epsilon) * hid_deriv[k]
+            out_change = - np.sqrt(out_sq_change + epsilon) / np.sqrt(out_sq_deriv + epsilon) * out_deriv
+
+            # Accumulate updates
+            for k in range(len(self.hid_weights)):
+                hid_sq_change[k] = ada_decay * hid_sq_change[k] + (1-ada_decay) * np.square(hid_change[k])
+            out_sq_change = ada_decay * out_sq_change + (1-ada_decay) * np.square(out_change)
+
+            #print(out_change)
+            #print(out_sq_change)
             # Update weights
-            # Hidden layers
             for k in range(len(self.hid_weights)):
-                self.hid_weights[k] -= learning_rate * hid_deriv[k]
-            # Output layer
-            self.out_weights -= learning_rate * out_deriv
-
+                self.hid_weights[k] += hid_change[k]
+            self.out_weights += out_change
+            #print(self.out_weights)
         return
 
     def predict(self, example):
