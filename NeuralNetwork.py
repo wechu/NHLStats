@@ -69,6 +69,17 @@ class NeuralNetwork:
             # TESTING decaying learning rate ###
             if j % 100 == 0 and learning_rate >= 0.01:
                 learning_rate *= 0.7
+                #print(learning_rate)
+
+            # TESTING early stopping
+            if j >= 100 and j % 50 == 0:
+                stop = True
+                for k in range(1, 21):
+                    if self.test_error[-k-1] > self.test_error[-k]:
+                        stop = False
+                        break
+                if stop:
+                    break
 
             # Initialize sum of errors
             hid_deriv_sum = [np.zeros(matrix.shape) for matrix in self.hid_weights]
@@ -112,8 +123,6 @@ class NeuralNetwork:
 
                 # Other hidden layers
                 for k in range(1, len(self.hid_weights)):
-                    #print(hid_activations[k-1])
-                    #print(hid_errors[k])
                     hid_deriv_sum[k] += np.dot(np.atleast_2d(hid_errors[k]).T, np.atleast_2d(hid_activations[k-1]))
 
                 # Output layer
@@ -290,8 +299,8 @@ class NeuralNetwork:
                     freq_probs_train[i] += 1
                     freq_wins_train[i] += int(y[x])
 
-        probs_test = [freq_wins_test[i]/ freq_probs_test[i] if freq_probs_test[i] != 0 else 0 for i in range(nb_buckets)]
-        probs_train = [freq_wins_train[i]/ freq_probs_train[i] if freq_probs_train[i] != 0 else 0 for i in range(nb_buckets)]
+        probs_test = [freq_wins_test[i]/ freq_probs_test[i] if freq_probs_test[i] != 0 else -1 for i in range(nb_buckets)]
+        probs_train = [freq_wins_train[i]/ freq_probs_train[i] if freq_probs_train[i] != 0 else -1 for i in range(nb_buckets)]
 
         print("Freq test:")
         print(freq_probs_test)
