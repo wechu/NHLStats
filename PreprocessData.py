@@ -87,6 +87,8 @@ for game in inputs_raw:
 aggregate_team = [[0 for i in range(15)] for j in range(30)]
 data = []
 
+agg_factor = 0.1  # the weight given to the current example when averaging
+
 for game in training_games:
     data.append([])
     for row in inputs_raw:
@@ -94,12 +96,13 @@ for game in training_games:
             if game[0] == row[0]:
                 data[-1][0:0] = aggregate_team[team_index.index(row[0])]  # Note we enter the game before aggregating to not include the results of the game in the inputs
                 for i in range(len(aggregate_team[0])):
-                    aggregate_team[team_index.index(row[0])][i] = 0.1*int(row[i+2])+0.9*aggregate_team[team_index.index(row[0])][i]
-
+                    aggregate_team[team_index.index(row[0])][i] = agg_factor * int(row[i+2]) + (1-agg_factor) * aggregate_team[team_index.index(row[0])][i]
+                    #aggregate_team[team_index.index(row[0])][i] += int(row[i+2])
             if game[2] == row[0]:
                 data[-1].extend(aggregate_team[team_index.index(row[0])])
                 for i in range(len(aggregate_team[0])):
-                    aggregate_team[team_index.index(row[0])][i] = 0.1*int(row[i+2])+0.9*aggregate_team[team_index.index(row[0])][i]
+                    aggregate_team[team_index.index(row[0])][i] = agg_factor * int(row[i+2]) + (1-agg_factor) * aggregate_team[team_index.index(row[0])][i]
+                    #aggregate_team[team_index.index(row[0])][i] += int(row[i+2])
 
     data[-1][0:0] = [int(team_legend[team_index.index(game[2])][i]) for i in range(2, len(team_legend[0]))]
     data[-1][0:0] = [int(team_legend[team_index.index(game[0])][i]) for i in range(2, len(team_legend[0]))]

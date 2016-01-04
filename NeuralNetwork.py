@@ -9,25 +9,40 @@ class NeuralNetwork:
         # Parameters
         self.weight_decay = weight_decay
 
+        self.nb_features = nb_features
+        self.nb_nodes_per_layer = nb_nodes_per_layer
+        self.nb_outputs = nb_outputs
+        self.nb_hidden_layers = nb_hidden_layers
+
+
         # For graphing
         self.train_error = []
         self.test_error = []
         self.iterations = []
 
-        #np.random.seed(5)
         # Initialize weight matrices to random values
         # Each hidden layer gets its own matrix
         # Other hidden layer weights
-        self.hid_weights = [np.random.uniform(-1, 1, (nb_nodes_per_layer, nb_nodes_per_layer + 1)) for i in range(nb_hidden_layers - 1)]
+        self.hid_weights = [np.random.uniform(-1, 1, (self.nb_nodes_per_layer, self.nb_nodes_per_layer + 1)) for i in range(self.nb_hidden_layers - 1)]
 
         # First hidden layer weights
-        self.hid_weights.insert(0, np.random.uniform(-1, 1, (nb_nodes_per_layer, nb_features + 1)))
+        self.hid_weights.insert(0, np.random.uniform(-1, 1, (self.nb_nodes_per_layer, self.nb_features + 1)))
 
         # Output layer weights
-        self.out_weights = np.random.uniform(-1, 1, (nb_outputs, nb_nodes_per_layer + 1))
+        self.out_weights = np.random.uniform(-1, 1, (self.nb_outputs, self.nb_nodes_per_layer + 1))
 
         # dimensions of matrices: (number of nodes in the next layer, number of nodes in the current layer + 1)
         # add 1 to number of features for the bias unit
+
+    def reset(self):
+        # Reinitializes all the parameters
+        self.train_error = []
+        self.test_error = []
+        self.iterations = []
+
+        self.hid_weights = [np.random.uniform(-1, 1, (self.nb_nodes_per_layer, self.nb_nodes_per_layer + 1)) for i in range(self.nb_hidden_layers - 1)]
+        self.hid_weights.insert(0, np.random.uniform(-1, 1, (self.nb_nodes_per_layer, self.nb_features + 1)))
+        self.out_weights = np.random.uniform(-1, 1, (self.nb_outputs, self.nb_nodes_per_layer + 1))
 
     def train(self, X, y, iterations=100, learning_rate=0.35, test_X=None, test_y=None, showCost=False):
         # X and y are your data
@@ -40,6 +55,10 @@ class NeuralNetwork:
         # Add column of ones to X for the bias unit
         X = np.insert(X, 0, 1, 1)
 
+        # Used for momentum
+        hid_deriv = [np.zeros(matrix.shape) for matrix in self.hid_weights]
+        out_deriv = np.zeros(self.out_weights.shape)
+
         for j in range(iterations):
             # Populates the lists for cost graph
             if j % 5 == 0:
@@ -51,8 +70,19 @@ class NeuralNetwork:
                     self.test_error.append(self.getCost(test_X, test_y))
 
             # TESTING decaying learning rate ###
-            if j % 100 == 0:
+            if j % 50 == 0 and learning_rate >= 0.01:
                 learning_rate *= 0.7
+                #print(learning_rate)
+
+            # TESTING early stopping
+            if j >= 100 and j % 50 == 0:
+                stop = True
+                for k in range(1, 11):
+                    if self.test_error[-k-1] > self.test_error[-k]:
+                        stop = False
+                        break
+                if stop:
+                    break
 
             # Initialize sum of errors
             hid_deriv_sum = [np.zeros(matrix.shape) for matrix in self.hid_weights]
@@ -61,7 +91,6 @@ class NeuralNetwork:
             # Loop over data examples
             for i in range(len(X)):
                 # Feed forward
-
                 hid_activations = []
                 # Hidden layer 1
                 hid_activations.append(self.sigmoid(self.hid_weights[0].dot(X[i])))
@@ -79,7 +108,6 @@ class NeuralNetwork:
                 # Output errors (deltas)
                 out_errors = out_activations - y[i]
 
-
                 # Hidden layer errors
                 hid_errors = []
                 # Hidden layer -1
@@ -91,33 +119,37 @@ class NeuralNetwork:
                     hid_errors.insert(0, np.dot(self.hid_weights[k].T, hid_errors[0]) * self.sigmoidPrime(hid_activations[k-1]))
                     hid_errors[0] = hid_errors[0][1:]  # remove bias term
 
-
                 # Update sum of errors
                 # Hidden layer 1
                 hid_deriv_sum[0] += np.dot(np.atleast_2d(hid_errors[0]).T, np.atleast_2d(X[i]))
 
                 # Other hidden layers
                 for k in range(1, len(self.hid_weights)):
-                    #print(hid_activations[k-1])
-                    #print(hid_errors[k])
                     hid_deriv_sum[k] += np.dot(np.atleast_2d(hid_errors[k]).T, np.atleast_2d(hid_activations[k-1]))
 
                 # Output layer
                 out_deriv_sum += np.dot(np.atleast_2d(out_errors).T, np.atleast_2d(hid_activations[-1]))
 
-
-                # in_deriv_sum += np.dot(np.atleast_2d(l1_errors_no_bias).T, np.atleast_2d(X[i]))
-                # out_deriv_sum += np.dot(np.atleast_2d(out_errors).T, np.atleast_2d(in_activations))
-
-            # Update weights (include weight decay)
+            # Include weight decay
             hid_decay = [self.weight_decay * np.insert(w[:, 1:], 0, 0, 1) for w in self.hid_weights]
             out_decay = self.weight_decay * np.insert(self.out_weights[:, 1:], 0, 0, 1)  # don't regularize bias weights
 
+            # Adjust gradient using momentum ### Try RMSProp later
+            momentum = 0.5  # part of the previous gradients is retained
+
+            if j % 20 == 0 and momentum < 0.99:
+                momentum *= 1.1
+
+            for k in range(len(self.hid_weights)):
+                hid_deriv[k] = momentum * hid_deriv[k] + (hid_deriv_sum[k] + hid_decay[k]) / len(X)
+            out_deriv = momentum * out_deriv + (out_deriv_sum + out_decay) / len(X)
+
+            # Update weights
             # Hidden layers
             for k in range(len(self.hid_weights)):
-                self.hid_weights[k] -= learning_rate / len(X) * (hid_deriv_sum[k] + hid_decay[k])
+                self.hid_weights[k] -= learning_rate * hid_deriv[k]
             # Output layer
-            self.out_weights -= learning_rate / len(X) * (out_deriv_sum + out_decay)
+            self.out_weights -= learning_rate * out_deriv
 
         return
 
@@ -220,14 +252,18 @@ class NeuralNetwork:
         plt.legend()
         return
 
+    def test(self, X, y, iterations, learning_rate, test_frac=0, X_test=None, y_test=None):
+        # Trains the neural net and prints the final training and testing errors (and the minimum test error)
+        # If X_test and y_test are given then those are used as the test sets
+        # Or else test_frac is used to split the data into training and test sets
 
-    def test(self, X, y, iterations, learning_rate, test_frac):
-        # Splits the data into a training set and a test set
-        # Prints the final training error and testing error (and the minimum test error)
         n = int(len(X) * (1 - test_frac))
-        # Could shuffle examples first
 
-        self.train(X[:n], y[:n], iterations, learning_rate, X[n:], y[n:])
+        if X_test is None and y_test is None:
+            X_test = X[n:]
+            y_test = y[n:]
+
+        self.train(X[:n], y[:n], iterations, learning_rate, X_test, y_test)
 
         print("Train:", self.train_error[-1])
         print("Test:", self.test_error[-1])
@@ -236,118 +272,60 @@ class NeuralNetwork:
         print("Min:", minErr, "at", minIter, "iters")
 
         print("Train (class):", self.classError(X[:n], y[:n]))
-        print("Test (class):", self.classError(X[n:], y[n:]))
+        print("Test (class):", self.classError(X_test, y_test))
 
         return minErr, self.test_error[-1], self.train_error[-1]
 
-    def testProbBuckets(self, X, y, test_frac):
+    def testProbBuckets(self, X, y, nb_buckets=10, test_frac=0, X_test=None, y_test=None):
         # Test probability buckets
+        # This assumes we have trained before
+
         n = int(len(X) * (1 - test_frac))
 
-        preds = self.predict_mult(X)
+        if X_test is None and y_test is None:
+            X_test = X[n:]
+            y_test = y[n:]
 
-        nb_buckets = 10
+        preds_train = self.predict_mult(X[:n])
+        preds_test = self.predict_mult(X_test)
 
         freq_probs_test = [0] * nb_buckets
         freq_wins_test = [0] * nb_buckets
 
-        for x in range(n, len(preds)):
+        for x in range(len(preds_test)):
             for i in range(nb_buckets):
-                if preds[x] >= i / nb_buckets and preds[x] < (i+1) / nb_buckets:
+                if preds_test[x] >= i / nb_buckets and preds_test[x] < (i+1) / nb_buckets:
                     freq_probs_test[i] += 1
-                    freq_wins_test[i] += int(y[x])
+                    freq_wins_test[i] += int(y_test[x])
 
         freq_probs_train = [0] * nb_buckets
         freq_wins_train = [0] * nb_buckets
 
-        for x in range(n):
+        for x in range(len(preds_train)):
             for i in range(nb_buckets):
-                if preds[x] >= i / nb_buckets and preds[x] < (i+1) / nb_buckets:
+                if preds_train[x] >= i / nb_buckets and preds_train[x] < (i+1) / nb_buckets:
                     freq_probs_train[i] += 1
                     freq_wins_train[i] += int(y[x])
 
+        probs_test = [freq_wins_test[i]/ freq_probs_test[i] if freq_probs_test[i] != 0 else -1 for i in range(nb_buckets)]
+        probs_train = [freq_wins_train[i]/ freq_probs_train[i] if freq_probs_train[i] != 0 else -1 for i in range(nb_buckets)]
 
         print("Freq test:")
         print(freq_probs_test)
         print(freq_wins_test)
+        print(["{0:.2f}".format(x) for x in probs_test])
+
         print("Freq train:")
         print(freq_probs_train)
         print(freq_wins_train)
+        print(["{0:.2f}".format(x) for x in probs_train])
 
-        try:
-            probs_test = [freq_wins_test[i]/ freq_probs_test[i] for i in range(nb_buckets)]
-            probs_train = [freq_wins_train[i]/ freq_probs_train[i] for i in range(nb_buckets)]
-            print(probs_test)
-            print(probs_train)
-        except:
-            pass
+        return freq_probs_test, freq_wins_test, freq_probs_train, freq_wins_train
 
     def __repr__(self):
-        return "Hidden layer weights:\n" + str(self.hid_weights) + "\nOutput layer weights:\n" + str(self.out_weights)
-
-def testRuns(n, x, y):
-    # Runs n tests and finds the average errors
-    min_errs =[]
-    final_errs = []
-    train_errs = []
-    for i in range(n):
-        net = NeuralNetwork(96, 32, 1, 2, weight_decay=25)
-        temp = net.test(x, y, 2000, 0.25, 0.3)
-
-        min_errs.append(temp[0])
-        final_errs.append(temp[1])
-        train_errs.append(temp[2])
-        net.testProbBuckets(x, y, 0.3)
-
-    print(min_errs)
-    print("Avg min:", sum(min_errs)/n)
-    print(final_errs)
-    print("Avg final test:", sum(final_errs)/n)
-    print(train_errs)
-    print("Avg final train:", sum(train_errs)/n)
-
-    return
+        return "Nb hidden layers: " + str(self.nb_hidden_layers) + "\tNb hidden nodes per layer: " + str(self.nb_nodes_per_layer) + \
+               "\tWeight decay: {0:.3f}".format(self.weight_decay)
 
 if __name__ == "__main__":
-    net = NeuralNetwork(96, 32, 1, nb_hidden_layers=2, weight_decay=25)
 
-    input = np.genfromtxt(
-    'InputData2014-15_Final.csv',           # file name
-    delimiter=',',          # column delimiter
-    dtype='float32',        # data type
-    filling_values=0,       # fill missing values with 0
-    )
-
-    random.seed()
-    random.shuffle(input)
-    x = input[:, 1:]
-    y = input[:, 0]
-
-    # net.test(x, y, 1000, 0.25, 0.3)
-    # net.graphCosts(5)
-    # net.testProbBuckets(x, y, 0.3)
-    testRuns(30, x, y)
-
-    # x = [1, 2, 3, 4, 5]
-    # print(x[3:])
-
-    # minsErr = []
-    # minsIter = []
-    #
-    # tests = [2*i for i in range(4, 20)]
-    # for j in tests:
-    #     print("--- nodes =", j)
-    #     net = NeuralNetwork(8, j, 1, weight_decay=0.4)
-    #
-    #     temp = net.test(x, y, 300, 1.5, 0.8)
-    #     minsErr.append(temp[0])
-    #     minsIter.append(temp[1])
-    #
-    # print(minsErr)
-    # print(minsIter)
-    # plt.plot(tests, minsErr, label="Error")
-    # plt.title("Error vs nodes")
-    # plt.figure()
-    # plt.plot(tests, minsIter, label="Iter")
-    # plt.title("Iter vs nodes")
-    plt.show()
+    pass
