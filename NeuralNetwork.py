@@ -20,7 +20,6 @@ class NeuralNetwork:
         self.test_error = []
         self.iterations = []
 
-        #np.random.seed(5)
         # Initialize weight matrices to random values
         # Each hidden layer gets its own matrix
         # Other hidden layer weights
@@ -56,6 +55,10 @@ class NeuralNetwork:
         # Add column of ones to X for the bias unit
         X = np.insert(X, 0, 1, 1)
 
+        # Used for momentum
+        hid_deriv = [np.zeros(matrix.shape) for matrix in self.hid_weights]
+        out_deriv = np.zeros(self.out_weights.shape)
+
         for j in range(iterations):
             # Populates the lists for cost graph
             if j % 5 == 0:
@@ -67,7 +70,7 @@ class NeuralNetwork:
                     self.test_error.append(self.getCost(test_X, test_y))
 
             # TESTING decaying learning rate ###
-            if j % 100 == 0 and learning_rate >= 0.01:
+            if j % 50 == 0 and learning_rate >= 0.01:
                 learning_rate *= 0.7
                 #print(learning_rate)
 
@@ -88,7 +91,6 @@ class NeuralNetwork:
             # Loop over data examples
             for i in range(len(X)):
                 # Feed forward
-
                 hid_activations = []
                 # Hidden layer 1
                 hid_activations.append(self.sigmoid(self.hid_weights[0].dot(X[i])))
@@ -128,18 +130,26 @@ class NeuralNetwork:
                 # Output layer
                 out_deriv_sum += np.dot(np.atleast_2d(out_errors).T, np.atleast_2d(hid_activations[-1]))
 
-                # in_deriv_sum += np.dot(np.atleast_2d(l1_errors_no_bias).T, np.atleast_2d(X[i]))
-                # out_deriv_sum += np.dot(np.atleast_2d(out_errors).T, np.atleast_2d(in_activations))
-
-            # Update weights (include weight decay)
+            # Include weight decay
             hid_decay = [self.weight_decay * np.insert(w[:, 1:], 0, 0, 1) for w in self.hid_weights]
             out_decay = self.weight_decay * np.insert(self.out_weights[:, 1:], 0, 0, 1)  # don't regularize bias weights
 
+            # Adjust gradient using momentum
+            momentum = 0.5  # part of the previous gradients is retained
+
+            if j % 20 == 0 and momentum < 0.99:
+                momentum *= 1.1
+
+            for k in range(len(self.hid_weights)):
+                hid_deriv[k] = momentum * hid_deriv[k] + (hid_deriv_sum[k] + hid_decay[k]) / len(X)
+            out_deriv = momentum * out_deriv + (out_deriv_sum + out_decay) / len(X)
+
+            # Update weights
             # Hidden layers
             for k in range(len(self.hid_weights)):
-                self.hid_weights[k] -= learning_rate / len(X) * (hid_deriv_sum[k] + hid_decay[k])
+                self.hid_weights[k] -= learning_rate * hid_deriv[k]
             # Output layer
-            self.out_weights -= learning_rate / len(X) * (out_deriv_sum + out_decay)
+            self.out_weights -= learning_rate * out_deriv
 
         return
 
@@ -266,7 +276,7 @@ class NeuralNetwork:
 
         return minErr, self.test_error[-1], self.train_error[-1]
 
-    def testProbBuckets(self, X, y, test_frac=0, X_test=None, y_test=None):
+    def testProbBuckets(self, X, y, nb_buckets=10, test_frac=0, X_test=None, y_test=None):
         # Test probability buckets
         # This assumes we have trained before
 
@@ -278,8 +288,6 @@ class NeuralNetwork:
 
         preds_train = self.predict_mult(X[:n])
         preds_test = self.predict_mult(X_test)
-
-        nb_buckets = 10
 
         freq_probs_test = [0] * nb_buckets
         freq_wins_test = [0] * nb_buckets
@@ -312,6 +320,7 @@ class NeuralNetwork:
         print(freq_wins_train)
         print(["{0:.2f}".format(x) for x in probs_train])
 
+        return freq_probs_test, freq_wins_test, freq_probs_train, freq_wins_train
 
     def __repr__(self):
         return "Nb hidden layers: " + str(self.nb_hidden_layers) + "\tNb hidden nodes per layer: " + str(self.nb_nodes_per_layer) + \

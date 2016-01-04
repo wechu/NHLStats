@@ -3,6 +3,7 @@ import numpy as np
 import random
 import matplotlib.pyplot as plt
 import math
+from operator import add
 
 # This file is used for testing the neural network
 
@@ -13,6 +14,12 @@ def crossValidate(net, x, y, nb_folds):
     min_errs = []
     test_errs = []
     train_errs = []
+
+    nb_buckets = 10  # Could make this a parameter
+    freq_probs_test = [0] * nb_buckets
+    freq_wins_test = [0] * nb_buckets
+    freq_probs_train = [0] * nb_buckets
+    freq_wins_train = [0] * nb_buckets
 
     for i in range(nb_folds):
         print("--- Fold " + str(i+1) + " ---")
@@ -31,7 +38,12 @@ def crossValidate(net, x, y, nb_folds):
         test_errs.append(temp[1])
         train_errs.append(temp[2])
 
-        net.testProbBuckets(x_train, y_train, X_test=x_test, y_test=y_test)
+        freqs = net.testProbBuckets(x_train, y_train, nb_buckets=nb_buckets, X_test=x_test, y_test=y_test)
+        # Aggregates the prob buckets from each fold together
+        freq_probs_test = map(add, freq_probs_test, freqs[0])
+        freq_wins_test = map(add, freq_wins_test, freqs[1])
+        freq_probs_train = map(add, freq_probs_train, freqs[2])
+        freq_wins_train = map(add, freq_wins_train, freqs[3])
 
     print("\n----------")
     print(net, "\tNb folds:", nb_folds)
@@ -39,14 +51,27 @@ def crossValidate(net, x, y, nb_folds):
     print("Avg final test:", sum(test_errs)/nb_folds, "\t\t\t", test_errs)
     print("Avg final train:", sum(train_errs)/nb_folds, "\t\t\t", train_errs)
 
+    probs_test = [freq_wins_test[i]/ freq_probs_test[i] if freq_probs_test[i] != 0 else -1 for i in range(nb_buckets)]
+    probs_train = [freq_wins_train[i]/ freq_probs_train[i] if freq_probs_train[i] != 0 else -1 for i in range(nb_buckets)]
+
+    print("Total freq test:")
+    print(freq_probs_test)
+    print(freq_wins_test)
+    print(["{0:.2f}".format(x) for x in probs_test])
+
+    print("Total freq train:")
+    print(freq_probs_train)
+    print(freq_wins_train)
+    print(["{0:.2f}".format(x) for x in probs_train])
     return
 
 def testRuns(net, n, x, y):
     # Runs n tests and finds the average errors
-    # Each run is
     min_errs =[]
     test_errs = []
     train_errs = []
+
+
     for i in range(n):
         print("--- Run " + str(i+1) + " ---")
         net.reset()
@@ -73,17 +98,17 @@ if __name__ == '__main__':
     dtype='float64',        # data type
     filling_values=0,       # fill missing values with 0
     )
-    random.seed()
+    random.seed(6)
     random.shuffle(input)
     x = input[:, 1:]
     y = input[:, 0]
+    np.random.seed(6)
+    net = nn.NeuralNetwork(96, 32, 1, nb_hidden_layers=3, weight_decay=20)
 
-    net = nn.NeuralNetwork(96, 32, 1, nb_hidden_layers=3, weight_decay=15)
+    #crossValidate(net, x, y, 2)
 
-    crossValidate(net, x, y, 10)
-
-    #net.test(x, y, 2000, 0.2, 0.3)
-    #net.graphCosts(5)
+    net.test(x, y, 300, 0.3, 0.3)
+    net.graphCosts(5)
 
     plt.show()
 
