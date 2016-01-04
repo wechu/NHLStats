@@ -296,7 +296,7 @@ class NeuralNetwork:
             for i in range(nb_buckets):
                 if preds_test[x] >= i / nb_buckets and preds_test[x] < (i+1) / nb_buckets:
                     freq_probs_test[i] += 1
-                    freq_wins_test[i] += int(y[x])
+                    freq_wins_test[i] += int(y_test[x])
 
         freq_probs_train = [0] * nb_buckets
         freq_wins_train = [0] * nb_buckets

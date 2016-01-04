@@ -40,7 +40,6 @@ def crossValidate(net, x, y, nb_folds):
 
         freqs = net.testProbBuckets(x_train, y_train, nb_buckets=nb_buckets, X_test=x_test, y_test=y_test)
         # Aggregates the prob buckets from each fold together
-        print(freqs)
         freq_probs_test = list(map(add, freq_probs_test, freqs[0]))
         freq_wins_test = list(map(add, freq_wins_test, freqs[1]))
         freq_probs_train = list(map(add, freq_probs_train, freqs[2]))
