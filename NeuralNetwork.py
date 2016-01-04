@@ -77,7 +77,7 @@ class NeuralNetwork:
             # TESTING early stopping
             if j >= 100 and j % 50 == 0:
                 stop = True
-                for k in range(1, 21):
+                for k in range(1, 11):
                     if self.test_error[-k-1] > self.test_error[-k]:
                         stop = False
                         break
@@ -134,7 +134,7 @@ class NeuralNetwork:
             hid_decay = [self.weight_decay * np.insert(w[:, 1:], 0, 0, 1) for w in self.hid_weights]
             out_decay = self.weight_decay * np.insert(self.out_weights[:, 1:], 0, 0, 1)  # don't regularize bias weights
 
-            # Adjust gradient using momentum
+            # Adjust gradient using momentum ### Try RMSProp later
             momentum = 0.5  # part of the previous gradients is retained
 
             if j % 20 == 0 and momentum < 0.99:

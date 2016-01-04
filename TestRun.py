@@ -32,7 +32,7 @@ def crossValidate(net, x, y, nb_folds):
         x_train = np.concatenate((x[:i*nb_per_fold], x[(i+1)*nb_per_fold:]), axis=0)
         y_train = np.concatenate((y[:i*nb_per_fold], y[(i+1)*nb_per_fold:]), axis=0)
 
-        temp = net.test(x_train, y_train, 1500, 0.20, X_test=x_test, y_test=y_test)
+        temp = net.test(x_train, y_train, 1000, 0.30, X_test=x_test, y_test=y_test)
 
         min_errs.append(temp[0])
         test_errs.append(temp[1])
@@ -40,10 +40,11 @@ def crossValidate(net, x, y, nb_folds):
 
         freqs = net.testProbBuckets(x_train, y_train, nb_buckets=nb_buckets, X_test=x_test, y_test=y_test)
         # Aggregates the prob buckets from each fold together
-        freq_probs_test = map(add, freq_probs_test, freqs[0])
-        freq_wins_test = map(add, freq_wins_test, freqs[1])
-        freq_probs_train = map(add, freq_probs_train, freqs[2])
-        freq_wins_train = map(add, freq_wins_train, freqs[3])
+        print(freqs)
+        freq_probs_test = list(map(add, freq_probs_test, freqs[0]))
+        freq_wins_test = list(map(add, freq_wins_test, freqs[1]))
+        freq_probs_train = list(map(add, freq_probs_train, freqs[2]))
+        freq_wins_train = list(map(add, freq_wins_train, freqs[3]))
 
     print("\n----------")
     print(net, "\tNb folds:", nb_folds)
@@ -71,7 +72,6 @@ def testRuns(net, n, x, y):
     test_errs = []
     train_errs = []
 
-
     for i in range(n):
         print("--- Run " + str(i+1) + " ---")
         net.reset()
@@ -98,17 +98,17 @@ if __name__ == '__main__':
     dtype='float64',        # data type
     filling_values=0,       # fill missing values with 0
     )
-    random.seed(6)
+    #random.seed(6)
     random.shuffle(input)
     x = input[:, 1:]
     y = input[:, 0]
-    np.random.seed(6)
-    net = nn.NeuralNetwork(96, 32, 1, nb_hidden_layers=3, weight_decay=20)
+    #np.random.seed(6)
+    net = nn.NeuralNetwork(96, 72, 1, nb_hidden_layers=3, weight_decay=20)
 
-    #crossValidate(net, x, y, 2)
+    crossValidate(net, x, y, 10)
 
-    net.test(x, y, 300, 0.3, 0.3)
-    net.graphCosts(5)
+    #net.test(x, y, 300, 0.3, 0.3)
+    #net.graphCosts(5)
 
     plt.show()
 
