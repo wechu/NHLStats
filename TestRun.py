@@ -15,7 +15,7 @@ def crossValidate(net, x, y, nb_folds):
     test_errs = []
     train_errs = []
 
-    nb_buckets = 10  # Could make this a parameter
+    nb_buckets = 3  # Could make this a parameter
     freq_probs_test = [0] * nb_buckets
     freq_wins_test = [0] * nb_buckets
     freq_probs_train = [0] * nb_buckets
@@ -105,15 +105,15 @@ if __name__ == '__main__':
     filling_values=0,       # fill missing values with 0
     )
 
-    input = input_2013 + input_2014
+    input = np.vstack((input_2013, input_2014))
 
-    #random.seed(6)
+     #random.seed(6)
+
     random.shuffle(input)
     x = input[:, 1:]
     y = input[:, 0]
     #np.random.seed(6)
     net = nn.NeuralNetwork(94, 72, 1, nb_hidden_layers=3, weight_decay=20)
-
     crossValidate(net, x, y, 10)
 
     #net.test(x, y, 1000, 0.3, 0.3)
