@@ -32,7 +32,7 @@ def crossValidate(net, x, y, nb_folds):
         x_train = np.concatenate((x[:i*nb_per_fold], x[(i+1)*nb_per_fold:]), axis=0)
         y_train = np.concatenate((y[:i*nb_per_fold], y[(i+1)*nb_per_fold:]), axis=0)
 
-        temp = net.test(x_train, y_train, 1000, 0.30, X_test=x_test, y_test=y_test)
+        temp = net.test(x_train, y_train, 2000, 0.30, X_test=x_test, y_test=y_test)
         net.graphCosts(5)
         min_errs.append(temp[0])
         test_errs.append(temp[1])
@@ -102,12 +102,13 @@ if __name__ == '__main__':
     x = input[:, 1:]
     y = input[:, 0]
     #np.random.seed(6)
-    net = nn.NeuralNetwork(96, 72, 1, nb_hidden_layers=3, weight_decay=20)
+    net = nn.NeuralNetwork(96, 150, 1, nb_hidden_layers=3, weight_decay=2.1)
 
-    crossValidate(net, x, y, 5)
+    #crossValidate(net, x, y, 10)
 
-    #net.test(x, y, 1000, 0.3, 0.2)
-    #net.graphCosts()
+    net.test(x, y, 1200, 0.3, 0.2)
+    net.testProbBuckets(x, y, test_frac=0.2)
+    net.graphCosts(5)
 
     plt.show()
 
