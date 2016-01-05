@@ -91,12 +91,22 @@ def testRuns(net, n, x, y):
 
 if __name__ == '__main__':
 
-    input = np.genfromtxt(
+    input_2014 = np.genfromtxt(
     'InputData2014-15_Final.csv',           # file name
     delimiter=',',          # column delimiter
     dtype='float64',        # data type
     filling_values=0,       # fill missing values with 0
     )
+
+    input_2013 = np.genfromtxt(
+    'InputData2013-14_Final.csv',           # file name
+    delimiter=',',          # column delimiter
+    dtype='float64',        # data type
+    filling_values=0,       # fill missing values with 0
+    )
+
+    input = input_2013 + input_2014
+
     #random.seed(6)
     random.shuffle(input)
     x = input[:, 1:]
@@ -104,10 +114,10 @@ if __name__ == '__main__':
     #np.random.seed(6)
     net = nn.NeuralNetwork(94, 72, 1, nb_hidden_layers=3, weight_decay=20)
 
-    #crossValidate(net, x, y, 10)
+    crossValidate(net, x, y, 10)
 
-    net.test(x, y, 1000, 0.3, 0.3)
-    net.graphCosts(5)
+    #net.test(x, y, 1000, 0.3, 0.3)
+    #net.graphCosts(5)
 
     plt.show()
 
