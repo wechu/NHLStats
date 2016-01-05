@@ -2,7 +2,7 @@ import csv
 import numpy as np
 from operator import itemgetter
 
-'''imports list of season games'''
+###imports list of season games
 inputs_raw = []
 with open('team_game_season_2014_2015.csv', 'r') as csvfile:
     next(csvfile)
@@ -12,7 +12,7 @@ with open('team_game_season_2014_2015.csv', 'r') as csvfile:
 csvfile.close()
 
 
-'''imports team legend'''
+###imports team legend
 team_legend = []
 with open('Team_legend.csv', 'r') as csvfile:
     reader = csv.reader(csvfile)
@@ -25,7 +25,7 @@ team_index = []
 for team in team_legend:
     team_index.append(team[0])
 
-'''replace team name by abbreviation, add home game indicator'''
+###replace team name by abbreviation, add home game indicator
 for game in inputs_raw:
     game[0] = team_legend[team_index.index(game[0])][1]
 
@@ -39,11 +39,11 @@ team_index.clear()
 for team in team_legend:
     team_index.append(team[1])
 
-'''sort games by date'''
+###sort games by date'''
 inputs_raw.sort(key=itemgetter(1))
 
 
-'''replace dates by ordered numbers'''
+###replace dates by ordered numbers
 date_list = []
 for game in inputs_raw:
     date_list.append(game[1])
@@ -61,52 +61,79 @@ for i in range(1, len(date_list)):
 for i in range(0, len(inputs_raw)):
     inputs_raw[i][1] = date_numbered[i]
 
-'''reducing columns in inputs_raw'''
+###reducing columns in inputs_raw
 for game in inputs_raw:
-    game.pop(21) #FOW%
-    game.pop(18) #PK%
-    game.pop(15) #PP%
+    # game.pop(21) #FOW%
+    # game.pop(18) #PK%
+    # game.pop(15) #PP%
     game.pop(6)  #ties
+    game.pop(3)  #games played
 
+#inputs_raw structure:
+    #0 - team 1
+    #1 - date
+    #2 - team 2
+    #3 - wins
+    #4 - loss
+    #5 - overtime loss
+    #6 - points
+    #7 - goals for
+    #8 - goals against
+    #9 - shots for
+    #10 - shots against
+    #11 - power play goals
+    #12 - pp opp
+    #13 - PP%
+    #14 - TS
+    #15 - PPGA
+    #16 - PK%
+    #17 - FOW
+    #18 - FOL
+    #19 - FOW%
+    #20 - home/away indicator
 
-'''create training_game subset from input games'''
+###create training_game subset from input games
 training_games = []
 for game in inputs_raw:
-    if game[18] == 'home':
-        training_games.append(game[0:5])
-for game in training_games:
-    game.pop(3) #games played
+    if game[20] == 'home':
+        training_games.append(game[0:4])
 
 
 for game in inputs_raw:
-    game.pop(18) #home/away indicator
+    game.pop(20) #home/away indicator
     game.pop(2) #opposing team
 
 
-''' building matrix to aggregate '''
-aggregate_team = [[0 for i in range(15)] for j in range(30)]
+###building matrix to aggregate
+aggregate_team = [[0 for i in range(len(inputs_raw[0])-2)] for j in range(30)]
 data = []
-
-agg_factor = 0.1  # the weight given to the current example when averaging
+max_agg_factor = 1    # the starting weight given to the current example when averaging
+min_agg_factor = 0.1  # the minimum weight given to the current example when averaging
+agg_factor_decay = 0.9 # decay factor reducing the weight given to the current game
 
 for game in training_games:
     data.append([])
     for row in inputs_raw:
         if game[1] == row[1]:
+
+            agg_factor = max(max_agg_factor, min_agg_factor)
+            max_agg_factor = max_agg_factor * agg_factor_decay
+
             if game[0] == row[0]:
                 data[-1][0:0] = aggregate_team[team_index.index(row[0])]  # Note we enter the game before aggregating to not include the results of the game in the inputs
                 for i in range(len(aggregate_team[0])):
-                    aggregate_team[team_index.index(row[0])][i] = agg_factor * int(row[i+2]) + (1-agg_factor) * aggregate_team[team_index.index(row[0])][i]
+                    aggregate_team[team_index.index(row[0])][i] = agg_factor * float(row[i+2]) + (1-agg_factor) * aggregate_team[team_index.index(row[0])][i]
                     #aggregate_team[team_index.index(row[0])][i] += int(row[i+2])
             if game[2] == row[0]:
                 data[-1].extend(aggregate_team[team_index.index(row[0])])
                 for i in range(len(aggregate_team[0])):
-                    aggregate_team[team_index.index(row[0])][i] = agg_factor * int(row[i+2]) + (1-agg_factor) * aggregate_team[team_index.index(row[0])][i]
+                    aggregate_team[team_index.index(row[0])][i] = agg_factor * float(row[i+2]) + (1-agg_factor) * aggregate_team[team_index.index(row[0])][i]
                     #aggregate_team[team_index.index(row[0])][i] += int(row[i+2])
 
     data[-1][0:0] = [int(team_legend[team_index.index(game[2])][i]) for i in range(2, len(team_legend[0]))]
     data[-1][0:0] = [int(team_legend[team_index.index(game[0])][i]) for i in range(2, len(team_legend[0]))]
     data[-1].insert(0, int(game[3]))
+
 
 # for i in range(30):
 #     print(data[i][61:], training_games[i])
@@ -118,25 +145,26 @@ data = data[nb_skipped:]
 
 #data structure:
     # 0 - win indicator
-    # 1:30 - team 1
-    # 31:60 - team 2
-    # 61 - GP (team1)
-    # 62 - Wins
-    # 63 - Losses
-    # 64 - Overtime Losses
-    # 65 - Points
-    # 66 - Goals For
-    # 67 - Goals Against
-    # 68 - Shots For
-    # 69 - Shots Againsts
-    # 70 - PPG
-    # 71 - PP opp
+    # 1:30 - team home
+    # 31:60 - team away
+    # 61 - Wins (team home)
+    # 62 - Losses
+    # 63 - Overtime Losses
+    # 64 - Points
+    # 65 - Goals For
+    # 66 - Goals Against
+    # 67 - Shots For
+    # 68 - Shots Againsts
+    # 69 - PPG
+    # 70 - PP opp
+    # 71 - PP%
     # 72 - TS
     # 73 - PPGA
-    # 74 - FOW
-    # 75 - FOL
-    # 76 - GP (team2)
-    # 77 - Wins
+    # 74 - PK%
+    # 75 - FOW
+    # 76 - FOL
+    # 77 - FOW%
+    # 77 - Wins (team away)
     # 78 - Losses
     # 79 - Overtime Losses
     # 80 - Points
@@ -146,31 +174,16 @@ data = data[nb_skipped:]
     # 84 - Shots Againsts
     # 85 - PPG
     # 86 - PP opp
-    # 87 - TS
-    # 88 - PPGA
-    # 89 - FOW
-    # 90 - FOL
-    # 91 - PP% (team1)
-    # 92 - PK% (team1)
-    # 93 - FOW% (team1)
-    # 94 - PP% (team2)
-    # 95 - PK% (team2)
-    # 96 - FOW% (team2)
-
+    # 87 - PP%
+    # 88 - TS
+    # 89 - PPGA
+    # 90 - PK%
+    # 91 - FOW
+    # 92 - FOL
+    # 93 - FOW%
 
 
 #adding percentage variables
-for agg_game in data:
-
-    #home
-    agg_game.append(agg_game[70]/agg_game[71])
-    agg_game.append((agg_game[72]-agg_game[73])/agg_game[72])
-    agg_game.append(agg_game[74]/(agg_game[74]+agg_game[75]))
-
-    #away
-    agg_game.append(agg_game[85]/agg_game[86])
-    agg_game.append((agg_game[87]-agg_game[88])/agg_game[87])
-    agg_game.append(agg_game[89]/(agg_game[89]+agg_game[90]))
 
 teams_inputs = np.array(data)[:, 0:61]  # These should not be normalized (team numbers)
 stats_inputs = np.array(data)[:, 61:]
