@@ -190,37 +190,26 @@ class PreProcessing:
         return aggregate_training_sets, aggregate_testing_sets
 
 
-    def normalized(self, data, data_test):
+    def normalize(self, data, data_test):
 
         teams_inputs = np.array(data)[:, 0:61]  # These should not be normalized (team numbers)
         stats_inputs = np.array(data)[:, 61:]
 
-        teams_inputs_test = np.array(data_test)[:, 0:61]  # These should not be normalized (team numbers)
-        stats_inputs_test = np.array(data_test)[:, 61:]
-
         mean = np.mean(stats_inputs, 0)
         std = np.std(stats_inputs, 0, ddof=1)
 
-
-
-        # for i in range(4):
-        #     print(teams_inputs[i])
-        #     print(stats_inputs[i])
-
         normalized_inputs = (stats_inputs - mean) / std
-        normalized_inputs_test = (stats_inputs_test - mean) / std
-
-        # print(np.mean(normalized_inputs, 0))
-        # print(np.std(normalized_inputs, 0, ddof=1))
-        #
-        # for i in range(4):
-        #     print(normalized_inputs[i])
-
         final_inputs = np.concatenate((teams_inputs, normalized_inputs), 1)
-        final_inputs_test = np.concatenate((teams_inputs_test, normalized_inputs_test), 1)
 
-        # for i in range(4):
-        #     print(final_inputs[i])
+
+        if data_test != None:
+            teams_inputs_test = np.array(data_test)[:, 0:61]  # These should not be normalized (team numbers)
+            stats_inputs_test = np.array(data_test)[:, 61:]
+            normalized_inputs_test = (stats_inputs_test - mean) / std
+            final_inputs_test = np.concatenate((teams_inputs_test, normalized_inputs_test), 1)
+
+        else:
+            final_inputs_test = []
 
         return final_inputs, final_inputs_test
 
@@ -235,10 +224,9 @@ class PreProcessing:
         )
 
 
-def preprocessing_final(self):
-        pass
-
-p = PreProcessing(2014)
-data, data_test = p.valid_builder(0)
-print(data)
-print(data_test)
+def preprocessing_final(year):
+        p = PreProcessing(year)
+        data, data_test = p.valid_builder(0)
+        normalized_data, normalized_test_data = p.normalize(data, data_test)
+        p.export_data(year, normalized_data)
+        print('Preprocessing for year ' + str(year) + '-' + str(year+1) + ' completed')
