@@ -104,7 +104,7 @@ class PreProcessing:
 
     def aggregation(self, game_set):
         ###building matrix to aggregate
-        aggregate_team = [[0 for i in range(len(self.inputs_raw[0])-2)] for j in range(30)]
+        aggregate_team = [[0 for i in range(len(self.inputs_raw[0])-2)] for j in range(len(self.team_index))]
         data = []
         max_agg_factor = 1    # the starting weight given to the current example when averaging
         min_agg_factor = 0.1  # the minimum weight given to the current example when averaging
@@ -228,5 +228,7 @@ def preprocessing_final(year):
         p = PreProcessing(year)
         data, data_test = p.valid_builder(0)
         normalized_data, normalized_test_data = p.normalize(data, data_test)
-        p.export_data(year, normalized_data)
+        p.export_data(1, normalized_data)
         print('Preprocessing for year ' + str(year) + '-' + str(year+1) + ' completed')
+
+preprocessing_final(2013)
