@@ -189,7 +189,6 @@ class PreProcessing:
 
         return aggregate_training_sets, aggregate_testing_sets
 
-
     def normalize(self, data, data_test):
 
         teams_inputs = np.array(data)[:, 0:61]  # These should not be normalized (team numbers)
@@ -223,24 +222,26 @@ class PreProcessing:
         comments='# ',          # character to use for comments
         )
 
+def preprocessing_cross_valid(year, nb_folds):
+    # Creates cross validation sets
+    p = PreProcessing(year)
+    data, data_test = p.valid_builder(nb_folds)
+    normalized_data = []
+    normalized_test_data = []
+
+    for i in range(nb_folds):
+        normalized_data_a, normalized_test_data_a = p.normalize(data[i], data_test[i])
+        normalized_data.append(normalized_data_a)
+        normalized_test_data.append(normalized_test_data_a)
+
+    return normalized_data, normalized_test_data
+
 
 def preprocessing_final(year, file_name):
-        p = PreProcessing(year)
-        data, data_test = p.valid_builder(0)
-        normalized_data, normalized_test_data = p.normalize(data, data_test)
-        p.export_data(file_name, normalized_data)
-        print('Preprocessing for year ' + str(year) + '-' + str(year+1) + ' completed')
-
-# preprocessing_final(2013, 'test')
-
-# def preprocessing_cross_valid(year, file_name, step):
-
-p = PreProcessing(2014)
-data, data_test = p.valid_builder(10)
-normalized_data = []
-normalized_test_data = []
-
-for i in range(10):
-    normalized_data_a, normalized_test_data_a = p.normalize(data[i], data_test[i])
-    normalized_data.append(normalized_data_a)
-    normalized_test_data.append(normalized_test_data_a)
+    # Preprocesses all data
+    # Eg: preprocessing_final(2013, 'test')
+    p = PreProcessing(year)
+    data, data_test = p.valid_builder(0)
+    normalized_data, normalized_test_data = p.normalize(data, data_test)
+    p.export_data(file_name, normalized_data)
+    print('Preprocessing for year ' + str(year) + '-' + str(year+1) + ' completed')
