@@ -213,9 +213,9 @@ class PreProcessing:
 
         return final_inputs, final_inputs_test
 
-    def export_data(self, year, save_data):
+    def export_data(self, file_name, save_data):
         np.savetxt(
-        'InputData' + str(year) + '_' + str(year+1) + '_Final.csv',           # file name
+        str(file_name) + '.csv',           # file name
         save_data,                # array to save
         fmt='%.15f',             # formatting, 2 digits in this case
         delimiter=',',          # column delimiter
@@ -224,11 +224,23 @@ class PreProcessing:
         )
 
 
-def preprocessing_final(year):
+def preprocessing_final(year, file_name):
         p = PreProcessing(year)
         data, data_test = p.valid_builder(0)
         normalized_data, normalized_test_data = p.normalize(data, data_test)
-        p.export_data(1, normalized_data)
+        p.export_data(file_name, normalized_data)
         print('Preprocessing for year ' + str(year) + '-' + str(year+1) + ' completed')
 
-preprocessing_final(2013)
+# preprocessing_final(2013, 'test')
+
+# def preprocessing_cross_valid(year, file_name, step):
+
+p = PreProcessing(2014)
+data, data_test = p.valid_builder(10)
+normalized_data = []
+normalized_test_data = []
+
+for i in range(10):
+    normalized_data_a, normalized_test_data_a = p.normalize(data[i], data_test[i])
+    normalized_data.append(normalized_data_a)
+    normalized_test_data.append(normalized_test_data_a)
