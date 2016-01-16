@@ -2,203 +2,246 @@ import csv
 import numpy as np
 from operator import itemgetter
 
-'''imports list of season games'''
-inputs_raw = []
-with open('team_game_season_2014_2015.csv', 'r') as csvfile:
-    next(csvfile)
-    reader = csv.reader(csvfile)
-    for row in reader:
-        inputs_raw.append([entry for entry in row])
-csvfile.close()
+class PreProcessing:
+    def __init__(self, year):
+
+        ###imports team legend
+        self.team_legend = []
+        with open('Team_legend.csv', 'r') as csvfile:
+            reader = csv.reader(csvfile)
+            for row in reader:
+                self.team_legend.append([entry for entry in row])
+        csvfile.close()
+        
+        self.team_index = []
+        for team in self.team_legend:
+            self.team_index.append(team[0])
+
+        self.inputs_raw = []
+
+        ###imports list of season games
+        with open('team_game_season_' + str(year) + '_' + str(year+1) + '.csv', 'r') as csvfile:
+            next(csvfile)
+            reader = csv.reader(csvfile)
+            for row in reader:
+                self.inputs_raw.append([entry for entry in row])
+        csvfile.close()
+
+        ###replace team name by abbreviation, add home game indicator
+        for game in self.inputs_raw:
+            game[0] = self.team_legend[self.team_index.index(game[0])][1]
+
+            if game[1][12:14] == 'vs':
+                game.append('home')
+            else:
+                game.append('away')
+            game[1] = game[1][0:10]
+
+        self.team_index.clear()
+        for team in self.team_legend:
+            self.team_index.append(team[1])
+
+        ###sort games by date'''
+        self.inputs_raw.sort(key=itemgetter(1))
 
 
-'''imports team legend'''
-team_legend = []
-with open('Team_legend.csv', 'r') as csvfile:
-    reader = csv.reader(csvfile)
-    for row in reader:
-        team_legend.append([entry for entry in row])
-csvfile.close()
+        ###replace dates by ordered numbers
+        date_list = []
+        for game in self.inputs_raw:
+            date_list.append(game[1])
+
+        date_numbered = [1]*len(date_list)
+        date_numbered[0] = 0
+        counter = 0
+        for i in range(1, len(date_list)):
+            if date_list[i] == date_list[i-1]:
+                date_numbered[i] = counter
+            else:
+                counter += 1
+                date_numbered[i] = counter
+
+        for i in range(0, len(self.inputs_raw)):
+            self.inputs_raw[i][1] = date_numbered[i]
+
+        ###reducing columns in self.inputs_raw
+        for game in self.inputs_raw:
+            game.pop(6)  #ties
+            game.pop(3)  #games played
+
+        #self.inputs_raw structure:
+            #0 - team 1
+            #1 - date
+            #2 - team 2
+            #3 - wins
+            #4 - loss
+            #5 - overtime loss
+            #6 - points
+            #7 - goals for
+            #8 - goals against
+            #9 - shots for
+            #10 - shots against
+            #11 - power play goals
+            #12 - pp opp
+            #13 - PP%
+            #14 - TS
+            #15 - PPGA
+            #16 - PK%
+            #17 - FOW
+            #18 - FOL
+            #19 - FOW%
+            #20 - home/away indicator
+
+        ###create training_game subset from input games
+        self.training_games = []
+        for game in self.inputs_raw:
+            if game[20] == 'home':
+                self.training_games.append(game[0:4])
 
 
-team_index = []
-for team in team_legend:
-    team_index.append(team[0])
+        for game in self.inputs_raw:
+            game.pop(20) #home/away indicator
+            game.pop(2) #opposing team
 
-'''replace team name by abbreviation, add home game indicator'''
-for game in inputs_raw:
-    game[0] = team_legend[team_index.index(game[0])][1]
-
-    if game[1][12:14] == 'vs':
-        game.append('home')
-    else:
-        game.append('away')
-    game[1] = game[1][0:10]
-
-team_index.clear()
-for team in team_legend:
-    team_index.append(team[1])
-
-'''sort games by date'''
-inputs_raw.sort(key=itemgetter(1))
+    def aggregation(self, game_set):
+        ###building matrix to aggregate
+        aggregate_team = [[0 for i in range(len(self.inputs_raw[0])-2)] for j in range(len(self.team_index))]
+        data = []
+        max_agg_factor = 1    # the starting weight given to the current example when averaging
+        min_agg_factor = 0.1  # the minimum weight given to the current example when averaging
+        agg_factor_decay = 0.9 # decay factor reducing the weight given to the current game
 
 
-'''replace dates by ordered numbers'''
-date_list = []
-for game in inputs_raw:
-    date_list.append(game[1])
+        for game in game_set:
+            data.append([])
+            for row in self.inputs_raw:
+                if game[1] == row[1]:
 
-date_numbered = [1]*len(date_list)
-date_numbered[0] = 0
-counter = 0
-for i in range(1, len(date_list)):
-    if date_list[i] == date_list[i-1]:
-        date_numbered[i] = counter
-    else:
-        counter += 1
-        date_numbered[i] = counter
+                    agg_factor = max(max_agg_factor, min_agg_factor)
+                    max_agg_factor = max_agg_factor * agg_factor_decay
 
-for i in range(0, len(inputs_raw)):
-    inputs_raw[i][1] = date_numbered[i]
+                    if game[0] == row[0]:
+                        data[-1][0:0] = aggregate_team[self.team_index.index(row[0])]  # Note we enter the game before aggregating to not include the results of the game in the inputs
+                        for i in range(len(aggregate_team[0])):
+                            aggregate_team[self.team_index.index(row[0])][i] = agg_factor * float(row[i+2]) + (1-agg_factor) * aggregate_team[self.team_index.index(row[0])][i]
+                            #aggregate_team[self.team_index.index(row[0])][i] += int(row[i+2])
+                    if game[2] == row[0]:
+                        data[-1].extend(aggregate_team[self.team_index.index(row[0])])
+                        for i in range(len(aggregate_team[0])):
+                            aggregate_team[self.team_index.index(row[0])][i] = agg_factor * float(row[i+2]) + (1-agg_factor) * aggregate_team[self.team_index.index(row[0])][i]
+                            #aggregate_team[self.team_index.index(row[0])][i] += int(row[i+2])
 
-'''reducing columns in inputs_raw'''
-for game in inputs_raw:
-    game.pop(21) #FOW%
-    game.pop(18) #PK%
-    game.pop(15) #PP%
-    game.pop(6)  #ties
+            data[-1][0:0] = [int(self.team_legend[self.team_index.index(game[2])][i]) for i in range(2, len(self.team_legend[0]))]
+            data[-1][0:0] = [int(self.team_legend[self.team_index.index(game[0])][i]) for i in range(2, len(self.team_legend[0]))]
+            data[-1].insert(0, int(game[3]))
 
+        nb_skipped = 20
+        data = data[nb_skipped:]
+        #data structure:
+            # 0 - win indicator
+            # 1:30 - team home
+            # 31:60 - team away
+            # 61 - Wins (team home)
+            # 62 - Losses
+            # 63 - Overtime Losses
+            # 64 - Points
+            # 65 - Goals For
+            # 66 - Goals Against
+            # 67 - Shots For
+            # 68 - Shots Againsts
+            # 69 - PPG
+            # 70 - PP opp
+            # 71 - PP%
+            # 72 - TS
+            # 73 - PPGA
+            # 74 - PK%
+            # 75 - FOW
+            # 76 - FOL
+            # 77 - FOW%
+            # 77 - Wins (team away)
+            # 78 - Losses
+            # 79 - Overtime Losses
+            # 80 - Points
+            # 81 - Goals For
+            # 82 - Goals Against
+            # 83 - Shots For
+            # 84 - Shots Againsts
+            # 85 - PPG
+            # 86 - PP opp
+            # 87 - PP%
+            # 88 - TS
+            # 89 - PPGA
+            # 90 - PK%
+            # 91 - FOW
+            # 92 - FOL
+            # 93 - FOW%
+        return data
 
-'''create training_game subset from input games'''
-training_games = []
-for game in inputs_raw:
-    if game[18] == 'home':
-        training_games.append(game[0:5])
-for game in training_games:
-    game.pop(3) #games played
+    def valid_builder(self, step):
+        if step == 0:
+            return self.aggregation(self.training_games), None
 
+        #creates trainings sets and testings sets for cross-validation
+        training_sets = [[self.training_games[i] for i in range(len(self.training_games)) if i % step != j] for j in range(step)]
+        data = self.aggregation(self.training_games)
 
-for game in inputs_raw:
-    game.pop(18) #home/away indicator
-    game.pop(2) #opposing team
+        aggregate_training_sets = [self.aggregation(lst) for lst in training_sets]
+        aggregate_testing_sets = [data[i::step] for i in range(step)]
 
+        return aggregate_training_sets, aggregate_testing_sets
 
-''' building matrix to aggregate '''
-aggregate_team = [[0 for i in range(15)] for j in range(30)]
-data = []
+    def normalize(self, data, data_test):
 
-agg_factor = 0.1  # the weight given to the current example when averaging
+        teams_inputs = np.array(data)[:, 0:61]  # These should not be normalized (team numbers)
+        stats_inputs = np.array(data)[:, 61:]
 
-for game in training_games:
-    data.append([])
-    for row in inputs_raw:
-        if game[1] == row[1]:
-            if game[0] == row[0]:
-                data[-1][0:0] = aggregate_team[team_index.index(row[0])]  # Note we enter the game before aggregating to not include the results of the game in the inputs
-                for i in range(len(aggregate_team[0])):
-                    aggregate_team[team_index.index(row[0])][i] = agg_factor * int(row[i+2]) + (1-agg_factor) * aggregate_team[team_index.index(row[0])][i]
-                    #aggregate_team[team_index.index(row[0])][i] += int(row[i+2])
-            if game[2] == row[0]:
-                data[-1].extend(aggregate_team[team_index.index(row[0])])
-                for i in range(len(aggregate_team[0])):
-                    aggregate_team[team_index.index(row[0])][i] = agg_factor * int(row[i+2]) + (1-agg_factor) * aggregate_team[team_index.index(row[0])][i]
-                    #aggregate_team[team_index.index(row[0])][i] += int(row[i+2])
+        mean = np.mean(stats_inputs, 0)
+        std = np.std(stats_inputs, 0, ddof=1)
 
-    data[-1][0:0] = [int(team_legend[team_index.index(game[2])][i]) for i in range(2, len(team_legend[0]))]
-    data[-1][0:0] = [int(team_legend[team_index.index(game[0])][i]) for i in range(2, len(team_legend[0]))]
-    data[-1].insert(0, int(game[3]))
-
-# for i in range(30):
-#     print(data[i][61:], training_games[i])
-#     if i== 20:
-#         print("-----------")
-# Exclude a few games at the beginning of the season to avoid games where the team stats are all 0
-nb_skipped = 20
-data = data[nb_skipped:]
-
-#data structure:
-    # 0 - win indicator
-    # 1:30 - team 1
-    # 31:60 - team 2
-    # 61 - GP (team1)
-    # 62 - Wins
-    # 63 - Losses
-    # 64 - Overtime Losses
-    # 65 - Points
-    # 66 - Goals For
-    # 67 - Goals Against
-    # 68 - Shots For
-    # 69 - Shots Againsts
-    # 70 - PPG
-    # 71 - PP opp
-    # 72 - TS
-    # 73 - PPGA
-    # 74 - FOW
-    # 75 - FOL
-    # 76 - GP (team2)
-    # 77 - Wins
-    # 78 - Losses
-    # 79 - Overtime Losses
-    # 80 - Points
-    # 81 - Goals For
-    # 82 - Goals Against
-    # 83 - Shots For
-    # 84 - Shots Againsts
-    # 85 - PPG
-    # 86 - PP opp
-    # 87 - TS
-    # 88 - PPGA
-    # 89 - FOW
-    # 90 - FOL
-    # 91 - PP% (team1)
-    # 92 - PK% (team1)
-    # 93 - FOW% (team1)
-    # 94 - PP% (team2)
-    # 95 - PK% (team2)
-    # 96 - FOW% (team2)
+        normalized_inputs = (stats_inputs - mean) / std
+        final_inputs = np.concatenate((teams_inputs, normalized_inputs), 1)
 
 
+        if data_test != None:
+            teams_inputs_test = np.array(data_test)[:, 0:61]  # These should not be normalized (team numbers)
+            stats_inputs_test = np.array(data_test)[:, 61:]
+            normalized_inputs_test = (stats_inputs_test - mean) / std
+            final_inputs_test = np.concatenate((teams_inputs_test, normalized_inputs_test), 1)
 
-#adding percentage variables
-for agg_game in data:
+        else:
+            final_inputs_test = []
 
-    #home
-    agg_game.append(agg_game[70]/agg_game[71])
-    agg_game.append((agg_game[72]-agg_game[73])/agg_game[72])
-    agg_game.append(agg_game[74]/(agg_game[74]+agg_game[75]))
+        return final_inputs, final_inputs_test
 
-    #away
-    agg_game.append(agg_game[85]/agg_game[86])
-    agg_game.append((agg_game[87]-agg_game[88])/agg_game[87])
-    agg_game.append(agg_game[89]/(agg_game[89]+agg_game[90]))
+    def export_data(self, file_name, save_data):
+        np.savetxt(
+        str(file_name) + '.csv',           # file name
+        save_data,                # array to save
+        fmt='%.15f',             # formatting, 2 digits in this case
+        delimiter=',',          # column delimiter
+        newline='\n',           # new line character
+        comments='# ',          # character to use for comments
+        )
 
-teams_inputs = np.array(data)[:, 0:61]  # These should not be normalized (team numbers)
-stats_inputs = np.array(data)[:, 61:]
+def preprocessing_cross_valid(year, nb_folds):
+    # Creates cross validation sets
+    p = PreProcessing(year)
+    data, data_test = p.valid_builder(nb_folds)
+    normalized_data = []
+    normalized_test_data = []
 
-# for i in range(4):
-#     print(teams_inputs[i])
-#     print(stats_inputs[i])
+    for i in range(nb_folds):
+        normalized_data_a, normalized_test_data_a = p.normalize(data[i], data_test[i])
+        normalized_data.append(normalized_data_a)
+        normalized_test_data.append(normalized_test_data_a)
 
-normalized_inputs = (stats_inputs - np.mean(stats_inputs, 0)) / np.std(stats_inputs, 0, ddof=1)
+    return normalized_data, normalized_test_data
 
-# print(np.mean(normalized_inputs, 0))
-# print(np.std(normalized_inputs, 0, ddof=1))
-#
-# for i in range(4):
-#     print(normalized_inputs[i])
 
-final_inputs = np.concatenate((teams_inputs, normalized_inputs), 1)
-
-# for i in range(4):
-#     print(final_inputs[i])
-
-np.savetxt(
-    'InputData2014-15_Final.csv',           # file name
-    final_inputs,                # array to save
-    fmt='%.15f',             # formatting, 2 digits in this case
-    delimiter=',',          # column delimiter
-    newline='\n',           # new line character
-    comments='# ',          # character to use for comments
-  )
-
-print('end')
+def preprocessing_final(year, file_name):
+    # Preprocesses all data
+    # Eg: preprocessing_final(2013, 'test')
+    p = PreProcessing(year)
+    data, data_test = p.valid_builder(0)
+    normalized_data, normalized_test_data = p.normalize(data, data_test)
+    p.export_data(file_name, normalized_data)
+    print('Preprocessing for year ' + str(year) + '-' + str(year+1) + ' completed')

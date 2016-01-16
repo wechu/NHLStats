@@ -15,7 +15,7 @@ def crossValidate(net, x, y, nb_folds):
     test_errs = []
     train_errs = []
 
-    nb_buckets = 10  # Could make this a parameter
+    nb_buckets = 3  # Could make this a parameter
     freq_probs_test = [0] * nb_buckets
     freq_wins_test = [0] * nb_buckets
     freq_probs_train = [0] * nb_buckets
@@ -91,22 +91,32 @@ def testRuns(net, n, x, y):
 
 if __name__ == '__main__':
 
-    input = np.genfromtxt(
+    input_2014 = np.genfromtxt(
     'InputData2014-15_Final.csv',           # file name
     delimiter=',',          # column delimiter
     dtype='float64',        # data type
     filling_values=0,       # fill missing values with 0
     )
-    #random.seed(6)
+
+    input_2013 = np.genfromtxt(
+    'InputData2013-14_Final.csv',           # file name
+    delimiter=',',          # column delimiter
+    dtype='float64',        # data type
+    filling_values=0,       # fill missing values with 0
+    )
+
+    input = np.vstack((input_2013, input_2014))
+
+     #random.seed(6)
+
     random.shuffle(input)
     x = input[:, 1:]
     y = input[:, 0]
     #np.random.seed(6)
-    net = nn.NeuralNetwork(96, 72, 1, nb_hidden_layers=3, weight_decay=20)
-
+    net = nn.NeuralNetwork(94, 72, 1, nb_hidden_layers=3, weight_decay=20)
     crossValidate(net, x, y, 10)
 
-    #net.test(x, y, 300, 0.3, 0.3)
+    #net.test(x, y, 1000, 0.3, 0.3)
     #net.graphCosts(5)
 
     plt.show()
