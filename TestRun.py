@@ -1,4 +1,6 @@
 import NeuralNetwork as nn
+import PreprocessData as pp
+
 import numpy as np
 import random
 import matplotlib.pyplot as plt
@@ -7,15 +9,17 @@ from operator import add
 
 # This file is used for testing the neural network
 
-def crossValidate(net, x, y, nb_folds):
-    # Splits the data into nb_folds batches using each batch as a testing set in turn
-    nb_per_fold = math.ceil(len(y) / nb_folds)  # round up so last batch is smaller
+def crossValidate(net, nb_folds):
+    # Splits the data into nb_folds batches using each batch as a testing set in turn and rest as the training set
+
+    ######## Need to fix: how to train on multiple years at once?
+    data_trains, data_tests = pp.preprocessing_cross_valid(2014, nb_folds)
 
     min_errs = []
     test_errs = []
     train_errs = []
 
-    nb_buckets = 3  # Could make this a parameter
+    nb_buckets = 4  # Could make this a parameter
     freq_probs_test = [0] * nb_buckets
     freq_wins_test = [0] * nb_buckets
     freq_probs_train = [0] * nb_buckets
@@ -26,11 +30,11 @@ def crossValidate(net, x, y, nb_folds):
 
         net.reset()
         # Make test and training sets
-        x_test = x[i*nb_per_fold:(i+1)*nb_per_fold]
-        y_test = y[i*nb_per_fold:(i+1)*nb_per_fold]
+        x_train = data_trains[i][:, 1:]
+        y_train = data_trains[i][:, 0]
 
-        x_train = np.concatenate((x[:i*nb_per_fold], x[(i+1)*nb_per_fold:]), axis=0)
-        y_train = np.concatenate((y[:i*nb_per_fold], y[(i+1)*nb_per_fold:]), axis=0)
+        x_test = data_tests[i][:, 1:]
+        y_test = data_tests[i][:, 0]
 
         temp = net.test(x_train, y_train, 1000, 0.30, X_test=x_test, y_test=y_test)
 
@@ -91,33 +95,25 @@ def testRuns(net, n, x, y):
 
 if __name__ == '__main__':
 
-    input_2014 = np.genfromtxt(
-    'InputData2014-15_Final.csv',           # file name
-    delimiter=',',          # column delimiter
-    dtype='float64',        # data type
-    filling_values=0,       # fill missing values with 0
-    )
 
-    input_2013 = np.genfromtxt(
-    'InputData2013-14_Final.csv',           # file name
-    delimiter=',',          # column delimiter
-    dtype='float64',        # data type
-    filling_values=0,       # fill missing values with 0
-    )
+    #random.seed(6)
 
-    input = np.vstack((input_2013, input_2014))
-
-     #random.seed(6)
-
-    random.shuffle(input)
-    x = input[:, 1:]
-    y = input[:, 0]
     #np.random.seed(6)
     net = nn.NeuralNetwork(94, 72, 1, nb_hidden_layers=3, weight_decay=20)
-    crossValidate(net, x, y, 10)
+    crossValidate(net, 2)
 
     #net.test(x, y, 1000, 0.3, 0.3)
     #net.graphCosts(5)
 
     plt.show()
+    #
+    # x = np.array([[1, 2, 3],
+    #               [4, 5, 6]])
+    # y = np.array([[0, 7, 8],
+    #               [9, 9, 9]])
+    #
+    # z = [x, y]
+    # print(z)
+    # print(z[0])
+    # print(z[0][:, 1:])
 

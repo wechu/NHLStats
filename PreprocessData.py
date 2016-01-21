@@ -103,7 +103,7 @@ class PreProcessing:
             game.pop(2) #opposing team
 
     def aggregation(self, game_set):
-        ###building matrix to aggregate
+        # building matrix to aggregate
         aggregate_team = [[0 for i in range(len(self.inputs_raw[0])-2)] for j in range(len(self.team_index))]
         data = []
         max_agg_factor = 1    # the starting weight given to the current example when averaging
@@ -191,7 +191,7 @@ class PreProcessing:
 
     def normalize(self, data, data_test):
 
-        teams_inputs = np.array(data)[:, 0:61]  # These should not be normalized (team numbers)
+        teams_inputs = np.array(data)[:, 0:61]  # These should not be normalized (team numbers and target)
         stats_inputs = np.array(data)[:, 61:]
 
         mean = np.mean(stats_inputs, 0)
