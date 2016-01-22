@@ -9,17 +9,20 @@ from operator import add
 
 # This file is used for testing the neural network
 
-def crossValidate(net, nb_folds):
+
+def crossValidate(net, nb_folds, iterations=1000, learning_rate=0.3):
     # Splits the data into nb_folds batches using each batch as a testing set in turn and rest as the training set
 
     ######## Need to fix: how to train on multiple years at once?
     data_trains, data_tests = pp.preprocessing_cross_valid(2014, nb_folds)
+    for i in range(nb_folds):
+        np.random.shuffle(data_trains[i])
 
     min_errs = []
     test_errs = []
     train_errs = []
 
-    nb_buckets = 4  # Could make this a parameter
+    nb_buckets = 5  # Could make this a parameter
     freq_probs_test = [0] * nb_buckets
     freq_wins_test = [0] * nb_buckets
     freq_probs_train = [0] * nb_buckets
@@ -36,7 +39,7 @@ def crossValidate(net, nb_folds):
         x_test = data_tests[i][:, 1:]
         y_test = data_tests[i][:, 0]
 
-        temp = net.test(x_train, y_train, 1000, 0.30, X_test=x_test, y_test=y_test)
+        temp = net.test(x_train, y_train, iterations, learning_rate, X_test=x_test, y_test=y_test)
 
         min_errs.append(temp[0])
         test_errs.append(temp[1])
@@ -67,7 +70,9 @@ def crossValidate(net, nb_folds):
     print(freq_probs_train)
     print(freq_wins_train)
     print(["{0:.2f}".format(x) for x in probs_train])
-    return
+
+    # Returns average min test error
+    return sum(min_errs)/nb_folds
 
 def testRuns(net, n, x, y):
     # Runs n tests and finds the average errors
@@ -93,16 +98,41 @@ def testRuns(net, n, x, y):
 
     return
 
+def hyperoptimization(iters):
+    # Uses random search to find good hyperparameters
+    # Number of hidden nodes per layer, weight decay, learning rate
+    results = []
+
+    for i in range(iters):
+        print("\n---- Optimization", i+1, "--")
+        nb_hidden_nodes = int(math.pow(10, random.uniform(1, 2.5)))
+        weight_decay = math.pow(10, random.uniform(0, 2))
+        learning_rate = 0.3  #random.uniform(0.1, 0.5)
+
+        print(nb_hidden_nodes, weight_decay, learning_rate, "\n")
+
+        net = nn.NeuralNetwork(94, nb_hidden_nodes, 1, nb_hidden_layers=3, weight_decay=weight_decay)
+        min_err = crossValidate(net, 3, learning_rate=learning_rate)
+
+        results.append((min_err, nb_hidden_nodes, weight_decay, learning_rate))
+
+    results.sort(key=lambda tup: tup[0])
+
+    for i in range(len(results)):
+        print(results[i])
+    return
+
+
+
 if __name__ == '__main__':
-
-
     #random.seed(6)
 
     #np.random.seed(6)
-    net = nn.NeuralNetwork(94, 72, 1, nb_hidden_layers=3, weight_decay=20)
-    crossValidate(net, 2)
+    net = nn.NeuralNetwork(94, 200, 1, nb_hidden_layers=3, weight_decay=20)
+    crossValidate(net, 4, learning_rate=0.3)
+    #hyperoptimization(5)
 
-    #net.test(x, y, 1000, 0.3, 0.3)
+
     #net.graphCosts(5)
 
     plt.show()

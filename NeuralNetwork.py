@@ -77,7 +77,7 @@ class NeuralNetwork:
             # TESTING early stopping
             if j >= 100 and j % 50 == 0:
                 stop = True
-                for k in range(1, 11):
+                for k in range(1, 6):
                     if self.test_error[-k-1] > self.test_error[-k]:
                         stop = False
                         break
