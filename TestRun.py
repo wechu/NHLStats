@@ -10,7 +10,7 @@ from operator import add
 # This file is used for testing the neural network
 
 
-def crossValidate(net, nb_folds, iterations=1000, learning_rate=0.3):
+def crossValidate(net, nb_folds, iterations=1000, learning_rate=0.4):
     # Splits the data into nb_folds batches using each batch as a testing set in turn and rest as the training set
 
     ######## Need to fix: how to train on multiple years at once?
@@ -74,29 +74,23 @@ def crossValidate(net, nb_folds, iterations=1000, learning_rate=0.3):
     # Returns average min test error
     return sum(min_errs)/nb_folds
 
-def testRuns(net, n, x, y):
-    # Runs n tests and finds the average errors
-    min_errs =[]
-    test_errs = []
-    train_errs = []
+def testOneRun(net, nb_folds, iterations=1000, learning_rate=0.3):
+    # Takes one fold from the cross-validation set and tests it
+    data_trains, data_tests = pp.preprocessing_cross_valid(2014, nb_folds)
+    rand_fold = random.randint(0, nb_folds-1)  # Pick a random fold to test
 
-    for i in range(n):
-        print("--- Run " + str(i+1) + " ---")
-        net.reset()
-        temp = net.test(x, y, 2000, 0.25, 0.3)
+    np.random.shuffle(data_trains[rand_fold])
 
-        min_errs.append(temp[0])
-        test_errs.append(temp[1])
-        train_errs.append(temp[2])
-        net.testProbBuckets(x, y, 0.3)
 
-    print("\n----------")
-    print(net)
-    print("Avg min:", sum(min_errs)/n, "\t\t\t", min_errs)
-    print("Avg final test:", sum(test_errs)/n, "\t\t\t", test_errs)
-    print("Avg final train:", sum(train_errs)/n, "\t\t\t", train_errs)
+    x_train = data_trains[rand_fold][:, 1:]
+    y_train = data_trains[rand_fold][:, 0]
 
-    return
+    x_test = data_tests[rand_fold][:, 1:]
+    y_test = data_tests[rand_fold][:, 0]
+    
+    temp = net.test(x_train, y_train, iterations, learning_rate, X_test=x_test, y_test=y_test)
+
+    return temp[0]
 
 def hyperoptimization(iters):
     # Uses random search to find good hyperparameters
@@ -129,21 +123,22 @@ if __name__ == '__main__':
 
     #np.random.seed(6)
     net = nn.NeuralNetwork(94, 200, 1, nb_hidden_layers=3, weight_decay=20)
-    crossValidate(net, 4, learning_rate=0.3)
+    #crossValidate(net, 4, learning_rate=0.3)
     #hyperoptimization(5)
 
 
     #net.graphCosts(5)
 
     plt.show()
-    #
-    # x = np.array([[1, 2, 3],
-    #               [4, 5, 6]])
-    # y = np.array([[0, 7, 8],
-    #               [9, 9, 9]])
-    #
-    # z = [x, y]
-    # print(z)
-    # print(z[0])
-    # print(z[0][:, 1:])
+
+    x = np.array([[1, 2, 3],
+                  [4, 5, 6]])
+    y = np.array([[0, 7, 8],
+                  [9, 9, 9]])
+    z = np.array([2,4,5])
+
+    a = [x, y, z]
+    print(a)
+    random.shuffle(a)
+    print(a)
 
