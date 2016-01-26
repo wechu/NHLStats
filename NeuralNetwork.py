@@ -14,7 +14,6 @@ class NeuralNetwork:
         self.nb_outputs = nb_outputs
         self.nb_hidden_layers = nb_hidden_layers
 
-
         # For graphing
         self.train_error = []
         self.test_error = []
@@ -22,14 +21,15 @@ class NeuralNetwork:
 
         # Initialize weight matrices to random values
         # Each hidden layer gets its own matrix
+        b = 0.3  # uniform distribution bounds
         # Other hidden layer weights
-        self.hid_weights = [np.random.uniform(-1, 1, (self.nb_nodes_per_layer, self.nb_nodes_per_layer + 1)) for i in range(self.nb_hidden_layers - 1)]
+        self.hid_weights = [np.random.uniform(-b, b, (self.nb_nodes_per_layer, self.nb_nodes_per_layer + 1)) for i in range(self.nb_hidden_layers - 1)]
 
         # First hidden layer weights
-        self.hid_weights.insert(0, np.random.uniform(-1, 1, (self.nb_nodes_per_layer, self.nb_features + 1)))
+        self.hid_weights.insert(0, np.random.uniform(-b, b, (self.nb_nodes_per_layer, self.nb_features + 1)))
 
         # Output layer weights
-        self.out_weights = np.random.uniform(-1, 1, (self.nb_outputs, self.nb_nodes_per_layer + 1))
+        self.out_weights = np.random.uniform(-b, b, (self.nb_outputs, self.nb_nodes_per_layer + 1))
 
         # dimensions of matrices: (number of nodes in the next layer, number of nodes in the current layer + 1)
         # add 1 to number of features for the bias unit
@@ -48,6 +48,9 @@ class NeuralNetwork:
         # X and y are your data
         # X is the set of features
         # y is the set of target values
+
+        init_learning_rate = learning_rate  # save initial learning rate
+        time_constant = 100
 
         # Create copy of data for getCost (with no column of 1s)
         X2 = X
@@ -70,9 +73,7 @@ class NeuralNetwork:
                     self.test_error.append(self.getCost(test_X, test_y))
 
             # TESTING decaying learning rate ###
-            if j % 50 == 0 and learning_rate >= 0.01:
-                learning_rate *= 0.7
-                #print(learning_rate)
+            learning_rate = init_learning_rate * time_constant / (time_constant + j)
 
             # TESTING early stopping
             if j >= 100 and j % 50 == 0:
@@ -135,9 +136,9 @@ class NeuralNetwork:
             out_decay = self.weight_decay * np.insert(self.out_weights[:, 1:], 0, 0, 1)  # don't regularize bias weights
 
             # Adjust gradient using momentum ### Try RMSProp later
-            momentum = 0.5  # part of the previous gradients is retained
+            momentum = 0.3  # part of the previous gradients is retained
 
-            if j % 20 == 0 and momentum < 0.99:
+            if j % 50 == 0 and momentum < 0.99:
                 momentum *= 1.1
 
             for k in range(len(self.hid_weights)):
