@@ -14,7 +14,6 @@ class NeuralNetwork:
         self.nb_outputs = nb_outputs
         self.nb_hidden_layers = nb_hidden_layers
 
-
         # For graphing
         self.train_error = []
         self.test_error = []
@@ -22,14 +21,15 @@ class NeuralNetwork:
 
         # Initialize weight matrices to random values
         # Each hidden layer gets its own matrix
+        b = 0.3  # uniform distribution bounds
         # Other hidden layer weights
-        self.hid_weights = [np.random.uniform(-1, 1, (self.nb_nodes_per_layer, self.nb_nodes_per_layer + 1)) for i in range(self.nb_hidden_layers - 1)]
+        self.hid_weights = [np.random.uniform(-b, b, (self.nb_nodes_per_layer, self.nb_nodes_per_layer + 1)) for i in range(self.nb_hidden_layers - 1)]
 
         # First hidden layer weights
-        self.hid_weights.insert(0, np.random.uniform(-1, 1, (self.nb_nodes_per_layer, self.nb_features + 1)))
+        self.hid_weights.insert(0, np.random.uniform(-b, b, (self.nb_nodes_per_layer, self.nb_features + 1)))
 
         # Output layer weights
-        self.out_weights = np.random.uniform(-1, 1, (self.nb_outputs, self.nb_nodes_per_layer + 1))
+        self.out_weights = np.random.uniform(-b, b, (self.nb_outputs, self.nb_nodes_per_layer + 1))
 
         # dimensions of matrices: (number of nodes in the next layer, number of nodes in the current layer + 1)
         # add 1 to number of features for the bias unit
@@ -48,6 +48,9 @@ class NeuralNetwork:
         # X and y are your data
         # X is the set of features
         # y is the set of target values
+
+        init_learning_rate = learning_rate  # save initial learning rate
+        time_constant = 100
 
         # Create copy of data for getCost (with no column of 1s)
         X2 = X
@@ -84,7 +87,7 @@ class NeuralNetwork:
             # Early stopping
             if j >= 100 and j % 50 == 0:
                 stop = True
-                for k in range(1, 11):
+                for k in range(1, 6):
                     if self.test_error[-k-1] > self.test_error[-k]:
                         stop = False
                         break
@@ -165,6 +168,7 @@ class NeuralNetwork:
             for k in range(len(self.hid_weights)):
                 hid_change[k] = - np.sqrt(hid_sq_change[k] + epsilon) / np.sqrt(hid_sq_deriv[k] + epsilon) * hid_deriv[k]
             out_change = - np.sqrt(out_sq_change + epsilon) / np.sqrt(out_sq_deriv + epsilon) * out_deriv
+
 
             # Accumulate updates
             for k in range(len(self.hid_weights)):
