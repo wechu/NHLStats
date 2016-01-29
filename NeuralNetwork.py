@@ -63,8 +63,8 @@ class NeuralNetwork:
         out_sq_change = np.zeros(self.out_weights.shape)
         hid_sq_deriv = [np.zeros(matrix.shape) for matrix in self.hid_weights]
         out_sq_deriv = np.zeros(self.out_weights.shape)
-        ada_decay = 0.95
-        epsilon = 0.0000001
+        ada_decay = 0.99
+        epsilon = 0.00000001
         hid_deriv = [np.zeros(matrix.shape) for matrix in self.hid_weights]
         out_deriv = np.zeros(self.out_weights.shape)
         hid_change = [np.zeros(matrix.shape) for matrix in self.hid_weights]
@@ -72,7 +72,7 @@ class NeuralNetwork:
 
         # Minibatch update paramters
         minibatch_size = 100
-        minibatch_nb = -1
+        minibatch_nb = -1  # current minibatch number
 
         for j in range(iterations):
             # Populates the lists for cost graph
@@ -106,7 +106,6 @@ class NeuralNetwork:
                 if i == len(X):
                     minibatch_nb = -1
                     break
-
 
                 # Feed forward
                 hid_activations = []
@@ -156,8 +155,8 @@ class NeuralNetwork:
             # Note there is no learning rate
             # Compute gradient
             for k in range(len(self.hid_weights)):
-                hid_deriv[k] = (hid_deriv_batch[k] + hid_decay[k]) / minibatch_size
-            out_deriv = (out_deriv_batch + out_decay) / minibatch_size
+                hid_deriv[k] = (hid_deriv_batch[k] + hid_decay[k]*minibatch_size/len(X)) / minibatch_size
+            out_deriv = (out_deriv_batch + out_decay*minibatch_size/len(X)) / minibatch_size
 
             # Accumulate gradient
             for k in range(len(self.hid_weights)):

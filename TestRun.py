@@ -6,6 +6,7 @@ import random
 import matplotlib.pyplot as plt
 import math
 from operator import add
+import time
 
 # This file is used for testing the neural network
 
@@ -96,11 +97,14 @@ def hyperoptimization(iters):
     # Number of hidden nodes per layer, weight decay, learning rate
     results = []
 
+    start = time.clock()
     for i in range(iters):
         print("\n---- Optimization", i+1, "--")
-        nb_hidden_nodes = int(math.pow(10, random.uniform(2, 2.5)))
+        s_time = time.clock()
+
+        nb_hidden_nodes = int(math.pow(10, random.uniform(1.5, 2.5)))
         weight_decay = math.pow(10, random.uniform(0, 1.5))
-        learning_rate = random.uniform(0.1, 0.6)
+        learning_rate = 0 #random.uniform(0, 0.1) not relevant for adadelta
 
         print(nb_hidden_nodes, weight_decay, learning_rate, "\n")
 
@@ -109,27 +113,28 @@ def hyperoptimization(iters):
 
         results.append((min_err, nb_hidden_nodes, weight_decay, learning_rate))
 
+        print("Time:", time.clock() - s_time)
+
     results.sort(key=lambda tup: tup[0])
 
+
+    print("\n-- Total time: ", time.clock() - start)
     for i in range(len(results)):
         print(results[i])
     return
 
-
-
 if __name__ == '__main__':
     #random.seed(6)
-
     #np.random.seed(6)
 
-    net = nn.NeuralNetwork(94, 150, 1, nb_hidden_layers=3, weight_decay=15)
+    #net = nn.NeuralNetwork(94, 100, 1, nb_hidden_layers=3, weight_decay=20)
 
-    #testOneRun(net, 5, 1000, 0.4)
+    #testOneRun(net, 5, 1000, 0.01)
 
     #crossValidate(net, 4, learning_rate=0.3)
-    hyperoptimization(5)
+    hyperoptimization(15)
 
-    net.graphCosts(5)
+    #net.graphCosts(5)
 
     plt.show()
 
