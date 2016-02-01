@@ -88,7 +88,10 @@ def testOneRun(net, nb_folds, iterations=1000, learning_rate=0.4):
     x_test = data_tests[rand_fold][:, 1:]
     y_test = data_tests[rand_fold][:, 0]
 
+    start = time.clock()
     temp = net.test(x_train, y_train, iterations, learning_rate, X_test=x_test, y_test=y_test)
+
+    print("Time:", time.clock() - start)
 
     return temp[0]
 
@@ -103,12 +106,12 @@ def hyperoptimization(iters):
         s_time = time.clock()
 
         nb_hidden_nodes = int(math.pow(10, random.uniform(1.5, 2.5)))
-        weight_decay = math.pow(10, random.uniform(0, 1.5))
-        learning_rate = 0 #random.uniform(0, 0.1) not relevant for adadelta
+        weight_decay =  math.pow(10, random.uniform(1, 1.5))  #random.uniform(15, 25)
+        learning_rate = 0  #random.uniform(0, 0.1) not relevant for adadelta
 
         print(nb_hidden_nodes, weight_decay, learning_rate, "\n")
 
-        net = nn.NeuralNetwork(94, nb_hidden_nodes, 1, nb_hidden_layers=3, weight_decay=weight_decay)
+        net = nn.NeuralNetwork(94, nb_hidden_nodes, 1, nb_hidden_layers=2, weight_decay=weight_decay)
         min_err = testOneRun(net, 5, learning_rate=learning_rate)
 
         results.append((min_err, nb_hidden_nodes, weight_decay, learning_rate))
@@ -127,14 +130,14 @@ if __name__ == '__main__':
     #random.seed(6)
     #np.random.seed(6)
 
-    #net = nn.NeuralNetwork(94, 100, 1, nb_hidden_layers=3, weight_decay=20)
+    net = nn.NeuralNetwork(94, 10, 1, nb_hidden_layers=1, weight_decay=10)
 
-    #testOneRun(net, 5, 1000, 0.01)
+    testOneRun(net, 5, 1000, 0)
 
     #crossValidate(net, 4, learning_rate=0.3)
-    hyperoptimization(15)
+    #hyperoptimization(15)
 
-    #net.graphCosts(5)
+    net.graphCosts(5)
 
     plt.show()
 
@@ -143,7 +146,12 @@ if __name__ == '__main__':
     # y = np.array([[0, 7, 8],
     #               [9, 9, 9]])
     # z = np.array([2,4,5])
+
     #
+
+
+
+
     # a = [x, y, z]
     # print(a)
     # random.shuffle(a)

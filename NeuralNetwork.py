@@ -17,6 +17,7 @@ class NeuralNetwork:
         # For graphing
         self.train_error = []
         self.test_error = []
+        self.test_class_error = []
         self.iterations = []
 
         # Initialize weight matrices to random values
@@ -38,13 +39,151 @@ class NeuralNetwork:
         # Reinitializes all the parameters
         self.train_error = []
         self.test_error = []
+        self.test_class_error = []
         self.iterations = []
 
         self.hid_weights = [np.random.uniform(-1, 1, (self.nb_nodes_per_layer, self.nb_nodes_per_layer + 1)) for i in range(self.nb_hidden_layers - 1)]
         self.hid_weights.insert(0, np.random.uniform(-1, 1, (self.nb_nodes_per_layer, self.nb_features + 1)))
         self.out_weights = np.random.uniform(-1, 1, (self.nb_outputs, self.nb_nodes_per_layer + 1))
 
-    def train(self, X, y, iterations=100, learning_rate=0.35, test_X=None, test_y=None, showCost=False):
+    def train(self, X, y, iterations=100, learning_rate=0, test_X=None, test_y=None, showCost=False):
+        # Uses Adadelta to train network
+        # X and y are your data
+        # X is the set of features
+        # y is the set of target values
+
+        # Create copy of data for getCost (with no column of 1s)
+        X2 = X
+
+        # Add column of ones to X for the bias unit
+        X = np.insert(X, 0, 1, 1)
+
+        # Used for Adadelta
+        hid_sq_change = [np.zeros(matrix.shape) for matrix in self.hid_weights]
+        out_sq_change = np.zeros(self.out_weights.shape)
+        hid_sq_deriv = [np.zeros(matrix.shape) for matrix in self.hid_weights]
+        out_sq_deriv = np.zeros(self.out_weights.shape)
+        ada_decay = 0.99
+        epsilon = 0.000001
+        hid_deriv = [np.zeros(matrix.shape) for matrix in self.hid_weights]
+        out_deriv = np.zeros(self.out_weights.shape)
+        hid_change = [np.zeros(matrix.shape) for matrix in self.hid_weights]
+        out_change = np.zeros(self.out_weights.shape)
+
+        # Minibatch update paramters
+        minibatch_size = 100
+        minibatch_nb = -1  # current minibatch number
+
+        for j in range(iterations):
+            # Populates the lists for cost graph
+            if j % 10 == 0:
+                self.train_error.append(self.getCost(X2, y))
+                self.iterations.append(j)
+                if showCost:
+                    print("Cost:", self.train_error[-1])
+                if test_X is not None and test_y is not None:
+                    self.test_error.append(self.getCost(test_X, test_y))
+                    self.test_class_error.append(self.classError(test_X, test_y))
+
+            # Early stopping
+            # if j >= 100 and j % 50 == 0:
+            #     stop = True
+            #     for k in range(1, 6):
+            #         if self.test_error[-k-1] > self.test_error[-k]:
+            #             stop = False
+            #             break
+            #     if stop:
+            #         break
+
+            # Initialize sum of errors
+            hid_deriv_batch = [np.zeros(matrix.shape) for matrix in self.hid_weights]
+            out_deriv_batch = np.zeros(self.out_weights.shape)
+
+            # Increment to next minibatch
+            minibatch_nb += 1
+            # Loop over minibatch examples
+            for i in range(minibatch_nb*minibatch_size, (minibatch_nb+1)*minibatch_size):
+                # Check for last example
+                if i == len(X):
+                    minibatch_nb = -1
+                    break
+
+                # Feed forward
+                hid_activations = []
+                # Hidden layer 1
+                hid_activations.append(self.sigmoid(self.hid_weights[0].dot(X[i])))
+                hid_activations[0] = np.insert(hid_activations[0], 0, 1)  # Add bias unit
+
+                # Other hidden layers
+                for k in range(1, len(self.hid_weights)):
+                    hid_activations.append(self.sigmoid(self.hid_weights[k].dot(hid_activations[-1])))
+                    hid_activations[-1] = np.insert(hid_activations[-1], 0, 1)
+
+                # Output layer (sigmoid activation)
+                out_activations = self.sigmoid2(self.out_weights.dot(hid_activations[-1]))
+
+                # Backpropagation
+                # Output errors (deltas)
+                out_errors = out_activations - y[i]
+
+                # Hidden layer errors
+                hid_errors = []
+                # Hidden layer -1
+                hid_errors.insert(0, np.dot(self.out_weights.T, out_errors) * self.sigmoidPrime(hid_activations[-1]))
+                hid_errors[0] = hid_errors[0][1:]  # remove bias term
+
+                # Other hidden layers
+                for k in reversed(range(1, len(self.hid_weights))):
+                    hid_errors.insert(0, np.dot(self.hid_weights[k].T, hid_errors[0]) * self.sigmoidPrime(hid_activations[k-1]))
+                    hid_errors[0] = hid_errors[0][1:]  # remove bias term
+
+                # Update sum of errors
+                # Hidden layer 1
+                hid_deriv_batch[0] += np.dot(np.atleast_2d(hid_errors[0]).T, np.atleast_2d(X[i]))
+
+                # Other hidden layers
+                for k in range(1, len(self.hid_weights)):
+                    hid_deriv_batch[k] += np.dot(np.atleast_2d(hid_errors[k]).T, np.atleast_2d(hid_activations[k-1]))
+
+                # Output layer
+                out_deriv_batch += np.dot(np.atleast_2d(out_errors).T, np.atleast_2d(hid_activations[-1]))
+
+            # Compute weight decay
+            hid_decay = [self.weight_decay * np.insert(w[:, 1:], 0, 0, 1) for w in self.hid_weights]
+            out_decay = self.weight_decay * np.insert(self.out_weights[:, 1:], 0, 0, 1)  # don't regularize bias weights
+
+            # Compute update using Adadelta
+            # Note there is no learning rate
+            # Compute gradient
+            for k in range(len(self.hid_weights)):
+                hid_deriv[k] = (hid_deriv_batch[k] + hid_decay[k]*minibatch_size/len(X)) / minibatch_size
+            out_deriv = (out_deriv_batch + out_decay*minibatch_size/len(X)) / minibatch_size
+
+            # Accumulate gradient
+            for k in range(len(self.hid_weights)):
+                hid_sq_deriv[k] = ada_decay * hid_sq_deriv[k] + (1-ada_decay) * np.square(hid_deriv[k])
+            out_sq_deriv = ada_decay * out_sq_deriv + (1-ada_decay) * np.square(out_deriv)
+
+            # Compute update
+            for k in range(len(self.hid_weights)):
+                hid_change[k] = - np.sqrt(hid_sq_change[k] + epsilon) / np.sqrt(hid_sq_deriv[k] + epsilon) * hid_deriv[k]
+            out_change = - np.sqrt(out_sq_change + epsilon) / np.sqrt(out_sq_deriv + epsilon) * out_deriv
+
+
+            # Accumulate updates
+            for k in range(len(self.hid_weights)):
+                hid_sq_change[k] = ada_decay * hid_sq_change[k] + (1-ada_decay) * np.square(hid_change[k])
+            out_sq_change = ada_decay * out_sq_change + (1-ada_decay) * np.square(out_change)
+
+            # Update weights
+            for k in range(len(self.hid_weights)):
+                self.hid_weights[k] += hid_change[k]
+            self.out_weights += out_change
+
+        return
+
+    def train2(self, X, y, iterations=100, learning_rate=0, test_X=None, test_y=None, showCost=False):
+        # Uses RMSProp to train network
         # X and y are your data
         # X is the set of features
         # y is the set of target values
@@ -64,7 +203,7 @@ class NeuralNetwork:
         hid_sq_deriv = [np.zeros(matrix.shape) for matrix in self.hid_weights]
         out_sq_deriv = np.zeros(self.out_weights.shape)
         ada_decay = 0.99
-        epsilon = 0.00000001
+        epsilon = 0.00001
         hid_deriv = [np.zeros(matrix.shape) for matrix in self.hid_weights]
         out_deriv = np.zeros(self.out_weights.shape)
         hid_change = [np.zeros(matrix.shape) for matrix in self.hid_weights]
@@ -301,6 +440,7 @@ class NeuralNetwork:
 
         print("Train (class):", self.classError(X[:n], y[:n]))
         print("Test (class):", self.classError(X_test, y_test))
+        print("Min (class)", self.test_class_error[self.test_error.index(minErr)])
 
         return minErr, self.test_error[-1], self.train_error[-1]
 
