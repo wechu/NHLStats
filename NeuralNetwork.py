@@ -156,8 +156,8 @@ class NeuralNetwork:
             # Note there is no learning rate
             # Compute gradient
             for k in range(len(self.hid_weights)):
-                hid_deriv[k] = (hid_deriv_batch[k] + hid_decay[k]*minibatch_size/len(X)) / minibatch_size
-            out_deriv = (out_deriv_batch + out_decay*minibatch_size/len(X)) / minibatch_size
+                hid_deriv[k] = hid_deriv_batch[k] / minibatch_size + hid_decay[k] / len(X)
+            out_deriv = out_deriv_batch / minibatch_size + out_decay / len(X)
 
             # Accumulate gradient
             for k in range(len(self.hid_weights)):

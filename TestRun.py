@@ -106,7 +106,7 @@ def hyperoptimization(iters):
         s_time = time.clock()
 
         nb_hidden_nodes = int(math.pow(10, random.uniform(1.5, 2.5)))
-        weight_decay =  math.pow(10, random.uniform(1, 1.5))  #random.uniform(15, 25)
+        weight_decay =  math.pow(10, random.uniform(0, 1.5))  #random.uniform(15, 25)
         learning_rate = 0  #random.uniform(0, 0.1) not relevant for adadelta
 
         print(nb_hidden_nodes, weight_decay, learning_rate, "\n")
@@ -130,7 +130,7 @@ if __name__ == '__main__':
     #random.seed(6)
     #np.random.seed(6)
 
-    net = nn.NeuralNetwork(94, 10, 1, nb_hidden_layers=1, weight_decay=10)
+    net = nn.NeuralNetwork(94, 100, 1, nb_hidden_layers=3, weight_decay=8)
 
     testOneRun(net, 5, 1000, 0)
 
