@@ -17,9 +17,8 @@ class PreProcessing:
         for team in self.team_legend:
             self.team_index.append(team[0])
 
-        self.inputs_raw = []
-
         ###imports list of season games
+        self.inputs_raw = []
         with open('team_game_season_' + str(year) + '_' + str(year+1) + '.csv', 'r') as csvfile:
             next(csvfile)
             reader = csv.reader(csvfile)
@@ -98,9 +97,24 @@ class PreProcessing:
                 self.training_games.append(game[0:4])
 
 
+        # for game in self.inputs_raw:
+        #     game.pop(20) #home/away indicator
+        #     game.pop(2) #opposing team
+
+        ### create list of differences
+        self.inputs_diff = []
         for game in self.inputs_raw:
-            game.pop(20) #home/away indicator
-            game.pop(2) #opposing team
+            self.inputs_diff.append([])
+            self.inputs_diff[-1].extend(game[0:2])
+            self.inputs_diff[-1].append(game[3])
+            self.inputs_diff[-1].append(float(game[6])/2)
+            self.inputs_diff[-1].append(float(game[7])-float(game[8]))
+            self.inputs_diff[-1].append(float(game[9])-float(game[10]))
+            self.inputs_diff[-1].append(float(game[11])-float(game[15]))
+            self.inputs_diff[-1].append(float(game[12])-float(game[14]))
+            self.inputs_diff[-1].append(float(game[17])-float(game[18]))
+
+        print(self.inputs_diff[0:2])
 
     def aggregation(self, game_set):
         ###building matrix to aggregate
@@ -245,3 +259,5 @@ def preprocessing_final(year, file_name):
     normalized_data, normalized_test_data = p.normalize(data, data_test)
     p.export_data(file_name, normalized_data)
     print('Preprocessing for year ' + str(year) + '-' + str(year+1) + ' completed')
+
+p = PreProcessing(2014)
