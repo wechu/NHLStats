@@ -75,7 +75,8 @@ def crossValidate(net, nb_folds, iterations=1000, learning_rate=0.4):
     # Returns average min test error
     return sum(min_errs)/nb_folds
 
-def testOneRun(net, nb_folds, iterations=1000, learning_rate=0.4):
+
+def testOneRun(net, nb_folds, iterations=1000, learning_rate=0.01, grad_decay=0.9, epsilon=0.000001, adadelta=False):
     # Takes one fold from the cross-validation set and tests it
     data_trains, data_tests = pp.preprocessing_cross_valid(2014, nb_folds)
     rand_fold = random.randint(0, nb_folds-1)  # Pick a random fold to test
@@ -89,11 +90,12 @@ def testOneRun(net, nb_folds, iterations=1000, learning_rate=0.4):
     y_test = data_tests[rand_fold][:, 0]
 
     start = time.clock()
-    temp = net.test(x_train, y_train, iterations, learning_rate, X_test=x_test, y_test=y_test)
+    temp = net.test(x_train, y_train, iterations, learning_rate, grad_decay, epsilon, adadelta, X_test=x_test, y_test=y_test)
 
     print("Time:", time.clock() - start)
 
     return temp[0]
+
 
 def hyperoptimization(iters):
     # Uses random search to find good hyperparameters
@@ -108,11 +110,13 @@ def hyperoptimization(iters):
         nb_hidden_nodes = int(math.pow(10, random.uniform(1.5, 2.5)))
         weight_decay =  math.pow(10, random.uniform(0, 1.5))  #random.uniform(15, 25)
         learning_rate = 0  #random.uniform(0, 0.1) not relevant for adadelta
+        grad_decay = 0.9
+        epsilon = 0.000001
 
         print(nb_hidden_nodes, weight_decay, learning_rate, "\n")
 
         net = nn.NeuralNetwork(94, nb_hidden_nodes, 1, nb_hidden_layers=2, weight_decay=weight_decay)
-        min_err = testOneRun(net, 5, learning_rate=learning_rate)
+        min_err = testOneRun(net, 5, 1000, learning_rate, grad_decay, epsilon)
 
         results.append((min_err, nb_hidden_nodes, weight_decay, learning_rate))
 
@@ -127,18 +131,20 @@ def hyperoptimization(iters):
     return
 
 if __name__ == '__main__':
-    #random.seed(6)
-    #np.random.seed(6)
+    #random.seed(32)
+    #np.random.seed(32)
 
     net = nn.NeuralNetwork(94, 100, 1, nb_hidden_layers=1, weight_decay=7)
+    net2 = net.clone()
+    testOneRun(net, 5, 1000, learning_rate=0.01, adadelta=False)
 
-    testOneRun(net, 5, 1000, 0)
+    testOneRun(net2, 5, 1000, adadelta=True)
 
     #crossValidate(net, 4, learning_rate=0.3)
     #hyperoptimization(10)
 
     net.graphCosts(1)
-
+    net2.graphCosts(1)
     plt.show()
 
 
