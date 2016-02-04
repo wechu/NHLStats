@@ -31,9 +31,9 @@ class PreProcessing:
             game[0] = self.team_legend[self.team_index.index(game[0])][1]
 
             if game[1][12:14] == 'vs':
-                game.append('home')
+                game.insert(22,'home')
             else:
-                game.append('away')
+                game.insert(22,'away')
             game[1] = game[1][0:10]
 
         self.team_index.clear()
@@ -89,6 +89,21 @@ class PreProcessing:
             #18 - FOL
             #19 - FOW%
             #20 - home/away indicator
+            #21 - SAT For
+            #22 - SAT Agst
+            #23 - SAT
+            #24 - SAT Tied
+            #25 - SAT Ahead
+            #26 - SAT Behind
+            #27 - SAT Close
+            #28 - USAT For
+            #29 - USAT Agst
+            #30 - USAT
+            #31 - USAT Tied
+            #32 - USAT Ahead
+            #33 - USAT Behind
+            #34 - USAT Close
+
 
         ###create training_game subset from input games
         self.training_games = []
@@ -96,12 +111,12 @@ class PreProcessing:
             if game[20] == 'home':
                 self.training_games.append(game[0:4])
 
-
         # for game in self.inputs_raw:
         #     game.pop(20) #home/away indicator
-        #     game.pop(2) #opposing team
+        # #     game.pop(2) #opposing team
 
-        ### create list of differences
+
+        ## create list of differences
         self.inputs_diff = []
         for game in self.inputs_raw:
             self.inputs_diff.append([])
@@ -113,8 +128,10 @@ class PreProcessing:
             self.inputs_diff[-1].append(float(game[11])-float(game[15]))
             self.inputs_diff[-1].append(float(game[12])-float(game[14]))
             self.inputs_diff[-1].append(float(game[17])-float(game[18]))
+            self.inputs_diff[-1].extend(game[23:28])
+            self.inputs_diff[-1].extend(game[30:35])
 
-        print(self.inputs_diff[0:2])
+        print(self.inputs_diff[0])
 
     def aggregation(self, game_set):
         ###building matrix to aggregate
