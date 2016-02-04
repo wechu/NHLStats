@@ -103,7 +103,7 @@ def hyperoptimization(iters):
     start = time.clock()
     for i in range(iters):
         print("\n---- Optimization", i+1, "--")
-        s_time = time.clock()
+        #s_time = time.clock()
 
         nb_hidden_nodes = int(math.pow(10, random.uniform(1.5, 2.5)))
         weight_decay =  math.pow(10, random.uniform(0, 1.5))  #random.uniform(15, 25)
@@ -116,44 +116,29 @@ def hyperoptimization(iters):
 
         results.append((min_err, nb_hidden_nodes, weight_decay, learning_rate))
 
-        print("Time:", time.clock() - s_time)
+        #print("Time:", time.clock() - s_time)
 
     results.sort(key=lambda tup: tup[0])
 
 
     print("\n-- Total time: ", time.clock() - start)
     for i in range(len(results)):
-        print(results[i])
+        print(",".join(str(x) for x in results[i]))
     return
 
 if __name__ == '__main__':
     #random.seed(6)
     #np.random.seed(6)
 
-    net = nn.NeuralNetwork(94, 100, 1, nb_hidden_layers=3, weight_decay=8)
+    net = nn.NeuralNetwork(94, 100, 1, nb_hidden_layers=1, weight_decay=7)
 
     testOneRun(net, 5, 1000, 0)
 
     #crossValidate(net, 4, learning_rate=0.3)
-    #hyperoptimization(15)
+    #hyperoptimization(10)
 
-    net.graphCosts(5)
+    net.graphCosts(1)
 
     plt.show()
 
-    # x = np.array([[1, 2, 3],
-    #               [4, 5, 6]])
-    # y = np.array([[0, 7, 8],
-    #               [9, 9, 9]])
-    # z = np.array([2,4,5])
-
-    #
-
-
-
-
-    # a = [x, y, z]
-    # print(a)
-    # random.shuffle(a)
-    # print(a)
 

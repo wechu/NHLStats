@@ -22,7 +22,7 @@ class NeuralNetwork:
 
         # Initialize weight matrices to random values
         # Each hidden layer gets its own matrix
-        b = 0.3  # uniform distribution bounds
+        b = 0.25  # uniform distribution bounds
         # Other hidden layer weights
         self.hid_weights = [np.random.uniform(-b, b, (self.nb_nodes_per_layer, self.nb_nodes_per_layer + 1)) for i in range(self.nb_hidden_layers - 1)]
 
@@ -159,7 +159,7 @@ class NeuralNetwork:
                 hid_deriv[k] = hid_deriv_batch[k] / minibatch_size + hid_decay[k] / len(X)
             out_deriv = out_deriv_batch / minibatch_size + out_decay / len(X)
 
-            # Accumulate gradient
+            # Compute average squared gradient
             for k in range(len(self.hid_weights)):
                 hid_sq_deriv[k] = ada_decay * hid_sq_deriv[k] + (1-ada_decay) * np.square(hid_deriv[k])
             out_sq_deriv = ada_decay * out_sq_deriv + (1-ada_decay) * np.square(out_deriv)
@@ -168,7 +168,6 @@ class NeuralNetwork:
             for k in range(len(self.hid_weights)):
                 hid_change[k] = - np.sqrt(hid_sq_change[k] + epsilon) / np.sqrt(hid_sq_deriv[k] + epsilon) * hid_deriv[k]
             out_change = - np.sqrt(out_sq_change + epsilon) / np.sqrt(out_sq_deriv + epsilon) * out_deriv
-
 
             # Accumulate updates
             for k in range(len(self.hid_weights)):
@@ -182,7 +181,7 @@ class NeuralNetwork:
 
         return
 
-    def train2(self, X, y, iterations=100, learning_rate=0, test_X=None, test_y=None, showCost=False):
+    def train2(self, X, y, iterations=100, learning_rate=0.01, test_X=None, test_y=None, showCost=False):
         # Uses RMSProp to train network
         # X and y are your data
         # X is the set of features
@@ -197,7 +196,7 @@ class NeuralNetwork:
         # Add column of ones to X for the bias unit
         X = np.insert(X, 0, 1, 1)
 
-        # Used for Adadelta
+        # Used for RMSProp
         hid_sq_change = [np.zeros(matrix.shape) for matrix in self.hid_weights]
         out_sq_change = np.zeros(self.out_weights.shape)
         hid_sq_deriv = [np.zeros(matrix.shape) for matrix in self.hid_weights]
@@ -206,8 +205,6 @@ class NeuralNetwork:
         epsilon = 0.00001
         hid_deriv = [np.zeros(matrix.shape) for matrix in self.hid_weights]
         out_deriv = np.zeros(self.out_weights.shape)
-        hid_change = [np.zeros(matrix.shape) for matrix in self.hid_weights]
-        out_change = np.zeros(self.out_weights.shape)
 
         # Minibatch update paramters
         minibatch_size = 100
@@ -294,29 +291,18 @@ class NeuralNetwork:
             # Note there is no learning rate
             # Compute gradient
             for k in range(len(self.hid_weights)):
-                hid_deriv[k] = (hid_deriv_batch[k] + hid_decay[k]*minibatch_size/len(X)) / minibatch_size
-            out_deriv = (out_deriv_batch + out_decay*minibatch_size/len(X)) / minibatch_size
+                hid_deriv[k] = hid_deriv_batch[k] / minibatch_size + hid_decay[k] / len(X)
+            out_deriv = out_deriv_batch / minibatch_size + out_decay / len(X)
 
-            # Accumulate gradient
+            # Compute moving average of square gradient
             for k in range(len(self.hid_weights)):
                 hid_sq_deriv[k] = ada_decay * hid_sq_deriv[k] + (1-ada_decay) * np.square(hid_deriv[k])
             out_sq_deriv = ada_decay * out_sq_deriv + (1-ada_decay) * np.square(out_deriv)
 
-            # Compute update
-            for k in range(len(self.hid_weights)):
-                hid_change[k] = - np.sqrt(hid_sq_change[k] + epsilon) / np.sqrt(hid_sq_deriv[k] + epsilon) * hid_deriv[k]
-            out_change = - np.sqrt(out_sq_change + epsilon) / np.sqrt(out_sq_deriv + epsilon) * out_deriv
-
-
-            # Accumulate updates
-            for k in range(len(self.hid_weights)):
-                hid_sq_change[k] = ada_decay * hid_sq_change[k] + (1-ada_decay) * np.square(hid_change[k])
-            out_sq_change = ada_decay * out_sq_change + (1-ada_decay) * np.square(out_change)
-
             # Update weights
             for k in range(len(self.hid_weights)):
-                self.hid_weights[k] += hid_change[k]
-            self.out_weights += out_change
+                self.hid_weights[k] -= learning_rate / np.sqrt(hid_sq_deriv[k] + epsilon) * hid_deriv[k]
+            self.out_weights -= learning_rate / np.sqrt(out_sq_deriv + epsilon) * out_deriv
 
         return
 
