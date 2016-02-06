@@ -178,17 +178,17 @@ class PreProcessing:
                         data[-1].extend(elo_team[self.team_index.index(row[0])])
                         game_stats.extend(row[2:])
 
-                    if len(data[-1]) == 2 * len(elo_team):
+                    if len(data[-1]) == 2 * len(elo_team[0]):
                         for i in range(len(elo_team[0])):
                             old_elo_1 = float(data[-1][i])
-                            old_elo_2 = float(data[-1][i+len(elo_team)])
+                            old_elo_2 = float(data[-1][i+len(elo_team[0])])
 
                             if i == 0 or i == 1:
-                                delta = self.delta_elo(k_factor, old_elo_1, old_elo_2, game_stats[i], False)
+                                delta = self.delta_elo(k_factor, old_elo_1, old_elo_2, float(game_stats[i]), False)
                                 elo_team[self.team_index.index(game[0])][i] += delta
                                 elo_team[self.team_index.index(game[2])][i] -= delta
                             else:
-                                delta = self.delta_elo(k_factor, old_elo_1, old_elo_2, game_stats[i])
+                                delta = self.delta_elo(k_factor, old_elo_1, old_elo_2, float(game_stats[i]))
                                 elo_team[self.team_index.index(game[0])][i] += delta
                                 elo_team[self.team_index.index(game[2])][i] -= delta
 
@@ -196,11 +196,13 @@ class PreProcessing:
 
 
 
-            data[-1][0:0] = [int(self.team_legend[self.team_index.index(game[2])][i]) for i in range(2, len(self.team_legend[0]))]
-            data[-1][0:0] = [int(self.team_legend[self.team_index.index(game[0])][i]) for i in range(2, len(self.team_legend[0]))]
+            # data[-1][0:0] = [int(self.team_legend[self.team_index.index(game[2])][i]) for i in range(2, len(self.team_legend[0]))]
+            # data[-1][0:0] = [int(self.team_legend[self.team_index.index(game[0])][i]) for i in range(2, len(self.team_legend[0]))]
+            # data[-1][0:0] = [self.team_index.index(game[2])]
+            # data[-1][0:0] = [self.team_index.index(game[0])]
             data[-1].insert(0, int(game[3]))
 
-        nb_skipped = 20 # is it still necessary to skip games?
+        nb_skipped = 0 # is it still necessary to skip games?
         data = data[nb_skipped:]
         #data structure:
             # 0 - win indicator
@@ -257,21 +259,21 @@ class PreProcessing:
 
     def normalize(self, data, data_test):
 
-        teams_inputs = np.array(data)[:, 0:61]  # These should not be normalized (team numbers)
-        stats_inputs = np.array(data)[:, 61:]
+        # teams_inputs = np.array(data)[:, 0:61]  # These should not be normalized (team numbers)
+        stats_inputs = np.array(data)
 
         mean = np.mean(stats_inputs, 0)
         std = np.std(stats_inputs, 0, ddof=1)
 
         normalized_inputs = (stats_inputs - mean) / std
-        final_inputs = np.concatenate((teams_inputs, normalized_inputs), 1)
+        final_inputs = normalized_inputs
 
 
         if data_test != None:
-            teams_inputs_test = np.array(data_test)[:, 0:61]  # These should not be normalized (team numbers)
-            stats_inputs_test = np.array(data_test)[:, 61:]
+            # teams_inputs_test = np.array(data_test)[:, 0:61]  # These should not be normalized (team numbers)
+            stats_inputs_test = np.array(data_test)
             normalized_inputs_test = (stats_inputs_test - mean) / std
-            final_inputs_test = np.concatenate((teams_inputs_test, normalized_inputs_test), 1)
+            final_inputs_test = normalized_inputs_test
 
         else:
             final_inputs_test = []
@@ -294,7 +296,6 @@ def preprocessing_cross_valid(year, nb_folds):
     data, data_test = p.valid_builder(nb_folds)
     normalized_data = []
     normalized_test_data = []
-
     for i in range(nb_folds):
         normalized_data_a, normalized_test_data_a = p.normalize(data[i], data_test[i])
         normalized_data.append(normalized_data_a)
@@ -308,8 +309,9 @@ def preprocessing_final(year, file_name):
     # Eg: preprocessing_final(2013, 'test')
     p = PreProcessing(year)
     data, data_test = p.valid_builder(0)
+    p.export_data('data_test',data)
     normalized_data, normalized_test_data = p.normalize(data, data_test)
     p.export_data(file_name, normalized_data)
     print('Preprocessing for year ' + str(year) + '-' + str(year+1) + ' completed')
 
-p = PreProcessing(2014)
+preprocessing_final(2014,'test1')
