@@ -22,7 +22,7 @@ class NeuralNetwork:
 
         # Initialize weight matrices to random values
         # Each hidden layer gets its own matrix
-        b = 0.25  # uniform distribution bounds
+        b = 0.3  # uniform distribution bounds
         # Other hidden layer weights
         self.hid_weights = [np.random.uniform(-b, b, (self.nb_nodes_per_layer, self.nb_nodes_per_layer + 1)) for i in range(self.nb_hidden_layers - 1)]
 
@@ -54,7 +54,7 @@ class NeuralNetwork:
         self.hid_weights.insert(0, np.random.uniform(-1, 1, (self.nb_nodes_per_layer, self.nb_features + 1)))
         self.out_weights = np.random.uniform(-1, 1, (self.nb_outputs, self.nb_nodes_per_layer + 1))
 
-    def train(self, X, y, iterations=100, learning_rate=0, grad_decay=0.99, epsilon=0.000001, adadelta=False, test_X=None, test_y=None, showCost=False):
+    def train(self, X, y, iterations=100, learning_rate=0, grad_decay=0.9, epsilon=0.000001, adadelta=False, test_X=None, test_y=None, showCost=False):
         # Uses RMSProp or Adadelta to train the network
         # X is the set of features
         # y is the set of target values
@@ -75,6 +75,9 @@ class NeuralNetwork:
         hid_change = [np.zeros(matrix.shape) for matrix in self.hid_weights]
         out_change = np.zeros(self.out_weights.shape)
 
+        init_learning_rate = learning_rate
+        annealing_constant = 200
+
         # Minibatch update paramters
         minibatch_size = 100
         minibatch_nb = -1  # current minibatch number
@@ -89,6 +92,9 @@ class NeuralNetwork:
                 if test_X is not None and test_y is not None:
                     self.test_error.append(self.getCost(test_X, test_y))
                     self.test_class_error.append(self.classError(test_X, test_y))
+
+            # Reduce learning rate
+            learning_rate = init_learning_rate * annealing_constant / max(j, annealing_constant)
 
             # Early stopping
             # if j >= 100 and j % 50 == 0:

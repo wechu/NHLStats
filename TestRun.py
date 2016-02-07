@@ -107,16 +107,16 @@ def hyperoptimization(iters):
         print("\n---- Optimization", i+1, "--")
         #s_time = time.clock()
 
-        nb_hidden_nodes = int(math.pow(10, random.uniform(1.5, 2.5)))
-        weight_decay =  math.pow(10, random.uniform(0, 1.5))  #random.uniform(15, 25)
-        learning_rate = 0  #random.uniform(0, 0.1) not relevant for adadelta
+        nb_hidden_nodes = int(random.uniform(20, 100)) #int(math.pow(10, random.uniform(1.5, 2.5)))
+        weight_decay = random.uniform(5, 20) #math.pow(10, random.uniform(0, 1.5))
+        learning_rate = math.pow(10, random.uniform(-2.5, -1.5)) #not relevant for adadelta
         grad_decay = 0.9
         epsilon = 0.000001
 
         print(nb_hidden_nodes, weight_decay, learning_rate, "\n")
 
-        net = nn.NeuralNetwork(94, nb_hidden_nodes, 1, nb_hidden_layers=2, weight_decay=weight_decay)
-        min_err = testOneRun(net, 5, 1000, learning_rate, grad_decay, epsilon)
+        net = nn.NeuralNetwork(94, nb_hidden_nodes, 1, nb_hidden_layers=1, weight_decay=weight_decay)
+        min_err = testOneRun(net, 10, 1000, learning_rate, grad_decay, epsilon)
 
         results.append((min_err, nb_hidden_nodes, weight_decay, learning_rate))
 
@@ -131,20 +131,20 @@ def hyperoptimization(iters):
     return
 
 if __name__ == '__main__':
-    #random.seed(32)
-    #np.random.seed(32)
+    #random.seed(12)
+    #np.random.seed(12)
 
-    net = nn.NeuralNetwork(94, 100, 1, nb_hidden_layers=1, weight_decay=7)
-    net2 = net.clone()
-    testOneRun(net, 5, 1000, learning_rate=0.01, adadelta=False)
+    net = nn.NeuralNetwork(94, 50, 1, nb_hidden_layers=1, weight_decay=12)
+    #net2 = net.clone()
+    testOneRun(net, 5, 1000, learning_rate=0.008, adadelta=False)
 
-    testOneRun(net2, 5, 1000, adadelta=True)
+    #testOneRun(net2, 5, 1000, adadelta=True)
 
     #crossValidate(net, 4, learning_rate=0.3)
-    #hyperoptimization(10)
+    #hyperoptimization(20)
 
     net.graphCosts(1)
-    net2.graphCosts(1)
+    #net2.graphCosts(1)
     plt.show()
 
 
