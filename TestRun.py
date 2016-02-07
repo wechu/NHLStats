@@ -134,17 +134,17 @@ if __name__ == '__main__':
     #random.seed(12)
     #np.random.seed(12)
 
-    net = nn.NeuralNetwork(94, 50, 1, nb_hidden_layers=1, weight_decay=12)
-    #net2 = net.clone()
-    testOneRun(net, 5, 1000, learning_rate=0.008, adadelta=False)
+    net = nn.NeuralNetwork(34, 70, 1, nb_hidden_layers=1, weight_decay=10)
+    net2 = net.clone()
+    testOneRun(net, 5, 1000, learning_rate=0.001, adadelta=False)
 
-    #testOneRun(net2, 5, 1000, adadelta=True)
+    testOneRun(net2, 5, 1000, adadelta=True)
 
     #crossValidate(net, 4, learning_rate=0.3)
     #hyperoptimization(20)
 
     net.graphCosts(1)
-    #net2.graphCosts(1)
+    net2.graphCosts(1)
     plt.show()
 
 
