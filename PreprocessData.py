@@ -158,7 +158,6 @@ class PreProcessing:
         return delta_elo
 
     def aggregation(self, game_set):
-        ###building matrix to aggregate
 
         #1500 initial elo will have to be revised eventually
         elo_team = [[1500 for i in range(len(self.inputs_diff[0])-2)] for j in range(len(self.team_index))]
