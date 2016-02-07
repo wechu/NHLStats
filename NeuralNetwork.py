@@ -17,6 +17,7 @@ class NeuralNetwork:
         # For graphing
         self.train_error = []
         self.test_error = []
+        self.test_class_error = []
         self.iterations = []
 
         # Initialize weight matrices to random values
@@ -34,23 +35,29 @@ class NeuralNetwork:
         # dimensions of matrices: (number of nodes in the next layer, number of nodes in the current layer + 1)
         # add 1 to number of features for the bias unit
 
+    def clone(self):
+        clone = NeuralNetwork(self.nb_features, self.nb_nodes_per_layer, self.nb_outputs, self.nb_hidden_layers, self.weight_decay)
+
+        clone.hid_weights = [np.copy(x) for x in self.hid_weights]
+        clone.out_weights = np.copy(self.out_weights)
+
+        return clone
+
     def reset(self):
         # Reinitializes all the parameters
         self.train_error = []
         self.test_error = []
+        self.test_class_error = []
         self.iterations = []
 
         self.hid_weights = [np.random.uniform(-1, 1, (self.nb_nodes_per_layer, self.nb_nodes_per_layer + 1)) for i in range(self.nb_hidden_layers - 1)]
         self.hid_weights.insert(0, np.random.uniform(-1, 1, (self.nb_nodes_per_layer, self.nb_features + 1)))
         self.out_weights = np.random.uniform(-1, 1, (self.nb_outputs, self.nb_nodes_per_layer + 1))
 
-    def train(self, X, y, iterations=100, learning_rate=0.35, test_X=None, test_y=None, showCost=False):
-        # X and y are your data
+    def train(self, X, y, iterations=100, learning_rate=0, grad_decay=0.9, epsilon=0.000001, adadelta=False, test_X=None, test_y=None, showCost=False):
+        # Uses RMSProp or Adadelta to train the network
         # X is the set of features
         # y is the set of target values
-
-        init_learning_rate = learning_rate  # save initial learning rate
-        time_constant = 100
 
         # Create copy of data for getCost (with no column of 1s)
         X2 = X
@@ -58,39 +65,60 @@ class NeuralNetwork:
         # Add column of ones to X for the bias unit
         X = np.insert(X, 0, 1, 1)
 
-        # Used for momentum
+        # Used for Adadelta / RMSProp
+        hid_sq_change = [np.zeros(matrix.shape) for matrix in self.hid_weights]
+        out_sq_change = np.zeros(self.out_weights.shape)
+        hid_sq_deriv = [np.zeros(matrix.shape) for matrix in self.hid_weights]
+        out_sq_deriv = np.zeros(self.out_weights.shape)
         hid_deriv = [np.zeros(matrix.shape) for matrix in self.hid_weights]
         out_deriv = np.zeros(self.out_weights.shape)
+        hid_change = [np.zeros(matrix.shape) for matrix in self.hid_weights]
+        out_change = np.zeros(self.out_weights.shape)
+
+        init_learning_rate = learning_rate
+        annealing_constant = 200
+
+        # Minibatch update paramters
+        minibatch_size = 100
+        minibatch_nb = -1  # current minibatch number
 
         for j in range(iterations):
             # Populates the lists for cost graph
-            if j % 5 == 0:
+            if j % 10 == 0:
                 self.train_error.append(self.getCost(X2, y))
                 self.iterations.append(j)
                 if showCost:
                     print("Cost:", self.train_error[-1])
                 if test_X is not None and test_y is not None:
                     self.test_error.append(self.getCost(test_X, test_y))
+                    self.test_class_error.append(self.classError(test_X, test_y))
 
-            # TESTING decaying learning rate ###
-            learning_rate = init_learning_rate * time_constant / (time_constant + j)
+            # Reduce learning rate
+            learning_rate = init_learning_rate * annealing_constant / max(j, annealing_constant)
 
-            # TESTING early stopping
-            if j >= 100 and j % 50 == 0:
-                stop = True
-                for k in range(1, 6):
-                    if self.test_error[-k-1] > self.test_error[-k]:
-                        stop = False
-                        break
-                if stop:
-                    break
+            # Early stopping
+            # if j >= 100 and j % 50 == 0:
+            #     stop = True
+            #     for k in range(1, 6):
+            #         if self.test_error[-k-1] > self.test_error[-k]:
+            #             stop = False
+            #             break
+            #     if stop:
+            #         break
 
             # Initialize sum of errors
-            hid_deriv_sum = [np.zeros(matrix.shape) for matrix in self.hid_weights]
-            out_deriv_sum = np.zeros(self.out_weights.shape)
+            hid_deriv_batch = [np.zeros(matrix.shape) for matrix in self.hid_weights]
+            out_deriv_batch = np.zeros(self.out_weights.shape)
 
-            # Loop over data examples
-            for i in range(len(X)):
+            # Increment to next minibatch
+            minibatch_nb += 1
+            # Loop over minibatch examples
+            for i in range(minibatch_nb*minibatch_size, (minibatch_nb+1)*minibatch_size):
+                # Check for last example
+                if i == len(X):
+                    minibatch_nb = -1
+                    break
+
                 # Feed forward
                 hid_activations = []
                 # Hidden layer 1
@@ -122,36 +150,52 @@ class NeuralNetwork:
 
                 # Update sum of errors
                 # Hidden layer 1
-                hid_deriv_sum[0] += np.dot(np.atleast_2d(hid_errors[0]).T, np.atleast_2d(X[i]))
+                hid_deriv_batch[0] += np.dot(np.atleast_2d(hid_errors[0]).T, np.atleast_2d(X[i]))
 
                 # Other hidden layers
                 for k in range(1, len(self.hid_weights)):
-                    hid_deriv_sum[k] += np.dot(np.atleast_2d(hid_errors[k]).T, np.atleast_2d(hid_activations[k-1]))
+                    hid_deriv_batch[k] += np.dot(np.atleast_2d(hid_errors[k]).T, np.atleast_2d(hid_activations[k-1]))
 
                 # Output layer
-                out_deriv_sum += np.dot(np.atleast_2d(out_errors).T, np.atleast_2d(hid_activations[-1]))
+                out_deriv_batch += np.dot(np.atleast_2d(out_errors).T, np.atleast_2d(hid_activations[-1]))
 
-            # Include weight decay
+            # Compute weight decay
             hid_decay = [self.weight_decay * np.insert(w[:, 1:], 0, 0, 1) for w in self.hid_weights]
             out_decay = self.weight_decay * np.insert(self.out_weights[:, 1:], 0, 0, 1)  # don't regularize bias weights
 
-            # Adjust gradient using momentum ### Try RMSProp later
-            momentum = 0.3  # part of the previous gradients is retained
-
-            if j % 50 == 0 and momentum < 0.99:
-                momentum *= 1.1
-
+            # Compute update using Adadelta
+            # Note there is no learning rate
+            # Compute gradient
             for k in range(len(self.hid_weights)):
-                hid_deriv[k] = momentum * hid_deriv[k] + (hid_deriv_sum[k] + hid_decay[k]) / len(X)
-            out_deriv = momentum * out_deriv + (out_deriv_sum + out_decay) / len(X)
+                hid_deriv[k] = hid_deriv_batch[k] / minibatch_size + hid_decay[k] / len(X)
+            out_deriv = out_deriv_batch / minibatch_size + out_decay / len(X)
 
-            # Update weights
-            # Hidden layers
+            # Compute average squared gradient
             for k in range(len(self.hid_weights)):
-                self.hid_weights[k] -= learning_rate * hid_deriv[k]
-            # Output layer
-            self.out_weights -= learning_rate * out_deriv
+                hid_sq_deriv[k] = grad_decay * hid_sq_deriv[k] + (1-grad_decay) * np.square(hid_deriv[k])
+            out_sq_deriv = grad_decay * out_sq_deriv + (1-grad_decay) * np.square(out_deriv)
 
+            if adadelta:
+                # Compute update
+                for k in range(len(self.hid_weights)):
+                    hid_change[k] = - np.sqrt(hid_sq_change[k] + epsilon) / np.sqrt(hid_sq_deriv[k] + epsilon) * hid_deriv[k]
+                out_change = - np.sqrt(out_sq_change + epsilon) / np.sqrt(out_sq_deriv + epsilon) * out_deriv
+
+                # Accumulate updates
+                for k in range(len(self.hid_weights)):
+                    hid_sq_change[k] = grad_decay * hid_sq_change[k] + (1-grad_decay) * np.square(hid_change[k])
+                out_sq_change = grad_decay * out_sq_change + (1-grad_decay) * np.square(out_change)
+
+                # Update weights
+                for k in range(len(self.hid_weights)):
+                    self.hid_weights[k] += hid_change[k]
+                self.out_weights += out_change
+
+            else:  # Use RMSProp update
+                # Update weights
+                for k in range(len(self.hid_weights)):
+                    self.hid_weights[k] -= learning_rate / np.sqrt(hid_sq_deriv[k] + epsilon) * hid_deriv[k]
+                self.out_weights -= learning_rate / np.sqrt(out_sq_deriv + epsilon) * out_deriv
         return
 
     def predict(self, example):
@@ -253,7 +297,7 @@ class NeuralNetwork:
         plt.legend()
         return
 
-    def test(self, X, y, iterations, learning_rate, test_frac=0, X_test=None, y_test=None):
+    def test(self, X, y, iterations, learning_rate, grad_decay, epsilon, adadelta, test_frac=0, X_test=None, y_test=None):
         # Trains the neural net and prints the final training and testing errors (and the minimum test error)
         # If X_test and y_test are given then those are used as the test sets
         # Or else test_frac is used to split the data into training and test sets
@@ -264,7 +308,7 @@ class NeuralNetwork:
             X_test = X[n:]
             y_test = y[n:]
 
-        self.train(X[:n], y[:n], iterations, learning_rate, X_test, y_test)
+        self.train(X[:n], y[:n], iterations, learning_rate, grad_decay, epsilon, adadelta, X_test, y_test)
 
         print("Train:", self.train_error[-1])
         print("Test:", self.test_error[-1])
@@ -274,6 +318,7 @@ class NeuralNetwork:
 
         print("Train (class):", self.classError(X[:n], y[:n]))
         print("Test (class):", self.classError(X_test, y_test))
+        print("Min (class)", self.test_class_error[self.test_error.index(minErr)])
 
         return minErr, self.test_error[-1], self.train_error[-1]
 
