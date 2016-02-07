@@ -258,21 +258,20 @@ class PreProcessing:
 
     def normalize(self, data, data_test):
 
-        # teams_inputs = np.array(data)[:, 0:61]  # These should not be normalized (team numbers)
-        stats_inputs = np.array(data)
+        targets = np.array(data)[:, 0:1]  # These should not be normalized (targets)
+        stats_inputs = np.array(data)[:, 1:]
 
         mean = np.mean(stats_inputs, 0)
         std = np.std(stats_inputs, 0, ddof=1)
-
         normalized_inputs = (stats_inputs - mean) / std
-        final_inputs = normalized_inputs
+        final_inputs = np.concatenate((targets, normalized_inputs), 1)
 
 
         if data_test != None:
-            # teams_inputs_test = np.array(data_test)[:, 0:61]  # These should not be normalized (team numbers)
-            stats_inputs_test = np.array(data_test)
+            targets_test = np.array(data_test)[:, 0:1]  # These should not be normalized (targets)
+            stats_inputs_test = np.array(data_test)[:, 1:]
             normalized_inputs_test = (stats_inputs_test - mean) / std
-            final_inputs_test = normalized_inputs_test
+            final_inputs_test = np.concatenate((targets_test, normalized_inputs_test), 1)
 
         else:
             final_inputs_test = []
@@ -313,4 +312,4 @@ def preprocessing_final(year, file_name):
     p.export_data(file_name, normalized_data)
     print('Preprocessing for year ' + str(year) + '-' + str(year+1) + ' completed')
 
-preprocessing_final(2014,'test1')
+# preprocessing_final(2014,'test1')
