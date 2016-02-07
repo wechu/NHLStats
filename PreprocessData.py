@@ -134,24 +134,24 @@ class PreProcessing:
 
     def delta_elo(self, k_factor, elo_1, elo_2, score_diff, margin_victory=True):
         #calculates the change in elo for team with elo_1
-        expected_result = 1/(1+10**((elo_1-elo_2)/400))
+        expected_result = 1/(1+10**((elo_2-elo_1)/400))
 
         if score_diff > 0:
             actual_result = 1
-            M = 2.2/((0.001*(elo_1-elo_2) +2.2))
+            M = 2.2/(0.001*(elo_1-elo_2) +2.2)
         elif score_diff == 0:
             actual_result = 0.5
             M = 1
         else:
             actual_result = 0
-            M = 2.2/((0.001*(elo_2-elo_1) +2.2))
+            M = 2.2/(0.001*(elo_2-elo_1) +2.2)
 
         delta_elo = 0
 
-        if margin_victory == False:
+        if not margin_victory:
             delta_elo += k_factor*(actual_result-expected_result)
 
-        elif margin_victory == True:
+        else:
             mov = math.log(abs(score_diff)+1)
             delta_elo += k_factor*mov*M*(actual_result-expected_result)
 
@@ -169,13 +169,13 @@ class PreProcessing:
             data.append([])
             game_stats = []
             for row in self.inputs_diff:
-                if game[1] == row[1]:
+                if game[1] == row[1]: #match time
 
-                    if game[0] == row[0]:
-                        data[-1][0:0] = elo_team[self.team_index.index(row[0])]  # Note: we enter the game before aggregating to not include the results of the game in the inputs
+                    if game[0] == row[0]: #if home team
+                        data[-1][0:0] = elo_team[self.team_index.index(game[0])]  # Note: we enter the game before aggregating to not include the results of the game in the inputs
                         game_stats[0:0] = row[2:]
-                    if game[2] == row[0]:
-                        data[-1].extend(elo_team[self.team_index.index(row[0])])
+                    if game[2] == row[0]: #if away team
+                        data[-1].extend(elo_team[self.team_index.index(game[2])])
                         game_stats.extend(row[2:])
 
                     if len(data[-1]) == 2 * len(elo_team[0]):
