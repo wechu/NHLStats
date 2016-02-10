@@ -157,10 +157,24 @@ class PreProcessing:
 
         return delta_elo
 
-    def aggregation(self, game_set):
+    def aggregation(self, game_set, first_year=False):
 
-        #1500 initial elo will have to be revised eventually
-        elo_team = [[1500 for i in range(len(self.inputs_diff[0])-2)] for j in range(len(self.team_index))]
+        if first_year:
+            #1500 initial elo will have to be revised eventually
+            self.elo_team = [[1500 for i in range(len(self.inputs_diff[0])-2)] for j in range(len(self.team_index))]
+
+        else:
+            self.elo_team = [[1500 for i in range(len(self.inputs_diff[0])-2)] for j in range(len(self.team_index))]
+            self.inputs_raw = []
+            with open('elo_' + str(year) + '.csv', 'r') as csvfile:
+                next(csvfile)
+                reader = csv.reader(csvfile)
+                for row in reader:
+                    self.inputs_raw.append([entry for entry in row])
+            csvfile.close()
+
+
+
         data = []
         k_factor = 10 #judgement call based on USCF approximation and Nate Silver's previous work with elo
 
@@ -171,25 +185,25 @@ class PreProcessing:
                 if game[1] == row[1]: #match time
 
                     if game[0] == row[0]: #if home team
-                        data[-1][0:0] = elo_team[self.team_index.index(game[0])]  # Note: we enter the game before aggregating to not include the results of the game in the inputs
+                        data[-1][0:0] = self.elo_team[self.team_index.index(game[0])]  # Note: we enter the game before aggregating to not include the results of the game in the inputs
                         game_stats[0:0] = row[2:]
                     if game[2] == row[0]: #if away team
-                        data[-1].extend(elo_team[self.team_index.index(game[2])])
+                        data[-1].extend(self.elo_team[self.team_index.index(game[2])])
                         game_stats.extend(row[2:])
 
-                    if len(data[-1]) == 2 * len(elo_team[0]):
-                        for i in range(len(elo_team[0])):
+                    if len(data[-1]) == 2 * len(self.elo_team[0]):
+                        for i in range(len(self.elo_team[0])):
                             old_elo_1 = float(data[-1][i])
-                            old_elo_2 = float(data[-1][i+len(elo_team[0])])
+                            old_elo_2 = float(data[-1][i+len(self.elo_team[0])])
 
                             if i == 0 or i == 1:
                                 delta = self.delta_elo(k_factor, old_elo_1, old_elo_2, float(game_stats[i]), False)
-                                elo_team[self.team_index.index(game[0])][i] += delta
-                                elo_team[self.team_index.index(game[2])][i] -= delta
+                                self.elo_team[self.team_index.index(game[0])][i] += delta
+                                self.elo_team[self.team_index.index(game[2])][i] -= delta
                             else:
                                 delta = self.delta_elo(k_factor, old_elo_1, old_elo_2, float(game_stats[i]))
-                                elo_team[self.team_index.index(game[0])][i] += delta
-                                elo_team[self.team_index.index(game[2])][i] -= delta
+                                self.elo_team[self.team_index.index(game[0])][i] += delta
+                                self.elo_team[self.team_index.index(game[2])][i] -= delta
 
 
 
@@ -243,50 +257,68 @@ class PreProcessing:
             # 93 - FOW%
         return data
 
-    def valid_builder(self, step):
-        if step == 0:
-            return self.aggregation(self.training_games), None
-
-        #creates trainings sets and testings sets for cross-validation
-        training_sets = [[self.training_games[i] for i in range(len(self.training_games)) if i % step != j] for j in range(step)]
-        data = self.aggregation(self.training_games)
-
-        aggregate_training_sets = [self.aggregation(lst) for lst in training_sets]
-        aggregate_testing_sets = [data[i::step] for i in range(step)]
-
-        return aggregate_training_sets, aggregate_testing_sets
-
-    def normalize(self, data, data_test):
-
-        targets = np.array(data)[:, 0:1]  # These should not be normalized (targets)
-        stats_inputs = np.array(data)[:, 1:]
-
-        mean = np.mean(stats_inputs, 0)
-        std = np.std(stats_inputs, 0, ddof=1)
-        normalized_inputs = (stats_inputs - mean) / std
-        final_inputs = np.concatenate((targets, normalized_inputs), 1)
-
-
-        if data_test != None:
-            targets_test = np.array(data_test)[:, 0:1]  # These should not be normalized (targets)
-            stats_inputs_test = np.array(data_test)[:, 1:]
-            normalized_inputs_test = (stats_inputs_test - mean) / std
-            final_inputs_test = np.concatenate((targets_test, normalized_inputs_test), 1)
+    def export_elo(self, year, soft_reset=True):
+        if soft_reset:
+            elo = np.array(self.elo_team) * 2/3 + 1/3 * 1500
 
         else:
-            final_inputs_test = []
+            elo = np.array(self.elo_team)
 
-        return final_inputs, final_inputs_test
 
-    def export_data(self, file_name, save_data):
         np.savetxt(
-        str(file_name) + '.csv',           # file name
-        save_data,                # array to save
+        'elo_' + str(year+1) + '.csv',           # file name
+        elo,                # array to save
         fmt='%.15f',             # formatting, 2 digits in this case
         delimiter=',',          # column delimiter
         newline='\n',           # new line character
         comments='# ',          # character to use for comments
         )
+
+
+    def valid_builder(self, step, first_year=False):
+        if step == 0:
+            return self.aggregation(self.training_games, first_year), None
+
+        #creates trainings sets and testings sets for cross-validation
+        training_sets = [[self.training_games[i] for i in range(len(self.training_games)) if i % step != j] for j in range(step)]
+        data = self.aggregation(self.training_games, first_year)
+
+        aggregate_training_sets = [self.aggregation(lst, first_year) for lst in training_sets]
+        aggregate_testing_sets = [data[i::step] for i in range(step)]
+
+        return aggregate_training_sets, aggregate_testing_sets
+
+def normalize(data, data_test):
+
+    targets = np.array(data)[:, 0:1]  # These should not be normalized (targets)
+    stats_inputs = np.array(data)[:, 1:]
+
+    mean = np.mean(stats_inputs, 0)
+    std = np.std(stats_inputs, 0, ddof=1)
+    normalized_inputs = (stats_inputs - mean) / std
+    final_inputs = np.concatenate((targets, normalized_inputs), 1)
+
+
+    if data_test:
+        targets_test = np.array(data_test)[:, 0:1]  # These should not be normalized (targets)
+        stats_inputs_test = np.array(data_test)[:, 1:]
+        normalized_inputs_test = (stats_inputs_test - mean) / std
+        final_inputs_test = np.concatenate((targets_test, normalized_inputs_test), 1)
+
+    else:
+        final_inputs_test = []
+
+    return final_inputs, final_inputs_test
+
+def export_data(file_name, save_data):
+    np.savetxt(
+    str(file_name) + '.csv',           # file name
+    save_data,                # array to save
+    fmt='%.15f',             # formatting, 2 digits in this case
+    delimiter=',',          # column delimiter
+    newline='\n',           # new line character
+    comments='# ',          # character to use for comments
+    )
 
 def preprocessing_cross_valid(year, nb_folds):
     # Creates cross validation sets
@@ -295,21 +327,28 @@ def preprocessing_cross_valid(year, nb_folds):
     normalized_data = []
     normalized_test_data = []
     for i in range(nb_folds):
-        normalized_data_a, normalized_test_data_a = p.normalize(data[i], data_test[i])
+        normalized_data_a, normalized_test_data_a = normalize(data[i], data_test[i])
         normalized_data.append(normalized_data_a)
         normalized_test_data.append(normalized_test_data_a)
 
     return normalized_data, normalized_test_data
 
 
-def preprocessing_final(year, file_name):
+def preprocessing_final(year1, year2, file_name):
     # Preprocesses all data
     # Eg: preprocessing_final(2013, 'test')
-    p = PreProcessing(year)
-    data, data_test = p.valid_builder(0)
-    p.export_data('data_test',data)
-    normalized_data, normalized_test_data = p.normalize(data, data_test)
-    p.export_data(file_name, normalized_data)
-    print('Preprocessing for year ' + str(year) + '-' + str(year+1) + ' completed')
+    data_final = []
+    for i in range(year1, year2+1):
+        p = PreProcessing(i)
+        if i == year1:
+            data, data_test = p.valid_builder(0, True)
+        else:
+            data, data_test = p.valid_builder(0)
+        p.export_elo(i)
+        data_final.extend(data)
+        print('Preprocessing for year ' + str(i) + '-' + str(i+1) + ' completed')
 
-# preprocessing_final(2014,'test1')
+    normalized_data, normalized_test_data = normalize(data_final, [])
+    export_data(file_name, normalized_data)
+
+# preprocessing_final(2014, 2014, 't3')
