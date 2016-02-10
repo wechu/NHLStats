@@ -9,9 +9,7 @@ from operator import add
 import time
 
 # This file is used for testing the neural network
-
-
-def crossValidate(net, nb_folds, iterations=1000, learning_rate=0.4):
+def crossValidate(net, nb_folds, iterations=1000, learning_rate=0.01, grad_decay=0.9, epsilon=0.000001, adadelta=False):
     # Splits the data into nb_folds batches using each batch as a testing set in turn and rest as the training set
 
     ######## Need to fix: how to train on multiple years at once?
@@ -31,6 +29,7 @@ def crossValidate(net, nb_folds, iterations=1000, learning_rate=0.4):
 
     for i in range(nb_folds):
         print("--- Fold " + str(i+1) + " ---")
+        start = time.clock()
 
         net.reset()
         # Make test and training sets
@@ -40,7 +39,7 @@ def crossValidate(net, nb_folds, iterations=1000, learning_rate=0.4):
         x_test = data_tests[i][:, 1:]
         y_test = data_tests[i][:, 0]
 
-        temp = net.test(x_train, y_train, iterations, learning_rate, X_test=x_test, y_test=y_test)
+        temp = net.test(x_train, y_train, iterations, learning_rate, grad_decay, epsilon, adadelta, X_test=x_test, y_test=y_test)
 
         min_errs.append(temp[0])
         test_errs.append(temp[1])
@@ -52,6 +51,9 @@ def crossValidate(net, nb_folds, iterations=1000, learning_rate=0.4):
         freq_wins_test = list(map(add, freq_wins_test, freqs[1]))
         freq_probs_train = list(map(add, freq_probs_train, freqs[2]))
         freq_wins_train = list(map(add, freq_wins_train, freqs[3]))
+
+
+        print("Time:", time.clock() - start)
 
     print("\n----------")
     print(net, "\tNb folds:", nb_folds)
@@ -76,8 +78,8 @@ def crossValidate(net, nb_folds, iterations=1000, learning_rate=0.4):
     return sum(min_errs)/nb_folds
 
 
-def testOneRun(net, nb_folds, iterations=1000, learning_rate=0.01, grad_decay=0.9, epsilon=0.000001, adadelta=False):
-    # Takes one fold from the cross-validation set and tests it
+def makeOneFold(nb_folds):
+    # Returns one fold from the cross-validation training set
     data_trains, data_tests = pp.preprocessing_cross_valid(2014, nb_folds)
     rand_fold = random.randint(0, nb_folds-1)  # Pick a random fold to test
 
@@ -88,6 +90,12 @@ def testOneRun(net, nb_folds, iterations=1000, learning_rate=0.01, grad_decay=0.
 
     x_test = data_tests[rand_fold][:, 1:]
     y_test = data_tests[rand_fold][:, 0]
+
+    return x_train, y_train, x_test, y_test
+
+def testOneRun(net, nb_folds, iterations=1000, learning_rate=0.01, grad_decay=0.9, epsilon=0.000001, adadelta=False):
+    # Takes one fold from the cross-validation set and tests it
+    x_train, y_train, x_test, y_test = makeOneFold(nb_folds)
 
     start = time.clock()
     temp = net.test(x_train, y_train, iterations, learning_rate, grad_decay, epsilon, adadelta, X_test=x_test, y_test=y_test)
@@ -115,7 +123,7 @@ def hyperoptimization(iters):
 
         print(nb_hidden_nodes, weight_decay, learning_rate, "\n")
 
-        net = nn.NeuralNetwork(94, nb_hidden_nodes, 1, nb_hidden_layers=1, weight_decay=weight_decay)
+        net = nn.NeuralNetwork(34, nb_hidden_nodes, 1, nb_hidden_layers=1, weight_decay=weight_decay)
         min_err = testOneRun(net, 10, 1000, learning_rate, grad_decay, epsilon)
 
         results.append((min_err, nb_hidden_nodes, weight_decay, learning_rate))
@@ -130,21 +138,55 @@ def hyperoptimization(iters):
         print(",".join(str(x) for x in results[i]))
     return
 
+
+def trainingSizeTest(net, iterations, learning_rate, grad_decay=0.9, epsilon=0.000001, adadelta=False):
+    # Plots error vs training set size for diagnosis
+    x_train, y_train, x_test, y_test = makeOneFold(10)
+    # for 10 folds, x_train is about 1000 examples now
+
+    training_sizes = []
+    min_errs = []
+    train_errs = []
+
+    for i in range(6, 21):
+        net_clone = net.clone()
+        # only train on a portion of examples
+        nb_examples = i*50
+        min_err, test_err, train_err = net_clone.test(x_train[:nb_examples], y_train[:nb_examples], iterations, learning_rate, grad_decay, epsilon, adadelta, X_test=x_test, y_test=y_test)
+
+        training_sizes.append(nb_examples)
+        min_errs.append(min_err)
+        train_errs.append(train_err)
+
+    plt.figure()
+    plt.title('Error vs Nb Training Examples')
+    plt.xlabel("Nb Training Examples")
+    plt.ylabel('Error')
+
+    plt.plot(training_sizes, train_errs, label="Training")
+
+    plt.plot(training_sizes, min_errs, label="Test")
+    plt.legend()
+
+    return
+
 if __name__ == '__main__':
     #random.seed(12)
     #np.random.seed(12)
 
-    net = nn.NeuralNetwork(34, 70, 1, nb_hidden_layers=1, weight_decay=10)
-    net2 = net.clone()
-    testOneRun(net, 5, 1000, learning_rate=0.001, adadelta=False)
+    net = nn.NeuralNetwork(34, 80, 1, nb_hidden_layers=1, weight_decay=14)
 
-    testOneRun(net2, 5, 1000, adadelta=True)
+    trainingSizeTest(net, 500, 0.008)
+    #net2 = net.clone()
+    #testOneRun(net, 5, 1000, learning_rate=0.0085, adadelta=False)
 
-    #crossValidate(net, 4, learning_rate=0.3)
+    #testOneRun(net2, 5, 1000, adadelta=True)
+
+    #crossValidate(net, 10, learning_rate=0.008)
     #hyperoptimization(20)
 
-    net.graphCosts(1)
-    net2.graphCosts(1)
+    #net.graphCosts(1)
+    #net2.graphCosts(1)
     plt.show()
 
 

@@ -201,7 +201,7 @@ class PreProcessing:
             # data[-1][0:0] = [self.team_index.index(game[0])]
             data[-1].insert(0, int(game[3]))
 
-        nb_skipped = 0 # is it still necessary to skip games?
+        nb_skipped = 50 # is it still necessary to skip games?
         data = data[nb_skipped:]
         #data structure:
             # 0 - win indicator
@@ -312,4 +312,7 @@ def preprocessing_final(year, file_name):
     p.export_data(file_name, normalized_data)
     print('Preprocessing for year ' + str(year) + '-' + str(year+1) + ' completed')
 
-# preprocessing_final(2014,'test1')
+
+
+if __name__ == "__main__":
+    preprocessing_final(2014,'test1')

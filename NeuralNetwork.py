@@ -22,16 +22,19 @@ class NeuralNetwork:
 
         # Initialize weight matrices to random values
         # Each hidden layer gets its own matrix
-        b = 0.3  # uniform distribution bounds
         # Other hidden layer weights
-        self.hid_weights = [np.random.uniform(-b, b, (self.nb_nodes_per_layer, self.nb_nodes_per_layer + 1)) for i in range(self.nb_hidden_layers - 1)]
+        self.b2 = math.sqrt(6 / (2 * nb_nodes_per_layer))   # uniform distribution bounds: approx. sqrt(6)/ sqrt(fan-in + fan-out)
+        self.hid_weights = [np.random.uniform(-self.b2, self.b2, (self.nb_nodes_per_layer, self.nb_nodes_per_layer + 1)) for i in range(self.nb_hidden_layers - 1)]
 
         # First hidden layer weights
-        self.hid_weights.insert(0, np.random.uniform(-b, b, (self.nb_nodes_per_layer, self.nb_features + 1)))
+        self.b1 = math.sqrt(6 / (nb_features + nb_nodes_per_layer))
+        self.hid_weights.insert(0, np.random.uniform(-self.b1, self.b1, (self.nb_nodes_per_layer, self.nb_features + 1)))
 
         # Output layer weights
-        self.out_weights = np.random.uniform(-b, b, (self.nb_outputs, self.nb_nodes_per_layer + 1))
+        self.b3 = math.sqrt(6 / (nb_nodes_per_layer + nb_outputs))
+        self.out_weights = np.random.uniform(-self.b3, self.b3, (self.nb_outputs, self.nb_nodes_per_layer + 1))
 
+        #print("Weight bounds:", self.b1, self.b2, self.b3)
         # dimensions of matrices: (number of nodes in the next layer, number of nodes in the current layer + 1)
         # add 1 to number of features for the bias unit
 
@@ -50,9 +53,9 @@ class NeuralNetwork:
         self.test_class_error = []
         self.iterations = []
 
-        self.hid_weights = [np.random.uniform(-1, 1, (self.nb_nodes_per_layer, self.nb_nodes_per_layer + 1)) for i in range(self.nb_hidden_layers - 1)]
-        self.hid_weights.insert(0, np.random.uniform(-1, 1, (self.nb_nodes_per_layer, self.nb_features + 1)))
-        self.out_weights = np.random.uniform(-1, 1, (self.nb_outputs, self.nb_nodes_per_layer + 1))
+        self.hid_weights = [np.random.uniform(-self.b2, self.b2, (self.nb_nodes_per_layer, self.nb_nodes_per_layer + 1)) for i in range(self.nb_hidden_layers - 1)]
+        self.hid_weights.insert(0, np.random.uniform(-self.b1, self.b1, (self.nb_nodes_per_layer, self.nb_features + 1)))
+        self.out_weights = np.random.uniform(-self.b3, self.b3, (self.nb_outputs, self.nb_nodes_per_layer + 1))
 
     def train(self, X, y, iterations=100, learning_rate=0, grad_decay=0.9, epsilon=0.000001, adadelta=False, test_X=None, test_y=None, showCost=False):
         # Uses RMSProp or Adadelta to train the network
@@ -79,6 +82,7 @@ class NeuralNetwork:
         annealing_constant = 200
 
         # Minibatch update paramters
+        print("Nb training examples:", len(X))
         minibatch_size = 100
         minibatch_nb = -1  # current minibatch number
 
