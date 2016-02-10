@@ -97,6 +97,15 @@ def testOneRun(net, nb_folds, iterations=1000, learning_rate=0.01, grad_decay=0.
     # Takes one fold from the cross-validation set and tests it
     x_train, y_train, x_test, y_test = makeOneFold(nb_folds)
 
+    # x_temp = x_train[:, 0:4]
+    # x_temp2 = x_test[:, 0:4]
+    #
+    # # TEST remove wins, points, goals for - goals against, shots for - shots against
+    # x_train = x_train[:, 4:]
+    # x_test = x_test[:, 4:]
+    # x_train = np.concatenate((x_train, x_temp), axis=1)
+    # x_test = np.concatenate((x_test, x_temp2), axis=1)
+
     start = time.clock()
     temp = net.test(x_train, y_train, iterations, learning_rate, grad_decay, epsilon, adadelta, X_test=x_test, y_test=y_test)
 
@@ -174,19 +183,23 @@ if __name__ == '__main__':
     #random.seed(12)
     #np.random.seed(12)
 
-    net = nn.NeuralNetwork(34, 80, 1, nb_hidden_layers=1, weight_decay=14)
+    net = nn.NeuralNetwork(34, 40, 1, nb_hidden_layers=1, weight_decay=14)
 
-    trainingSizeTest(net, 500, 0.008)
+    #trainingSizeTest(net, 500, 0.008)
     #net2 = net.clone()
-    #testOneRun(net, 5, 1000, learning_rate=0.0085, adadelta=False)
+    testOneRun(net, 5, 300, learning_rate=0.0085, adadelta=False)
 
-    #testOneRun(net2, 5, 1000, adadelta=True)
+    #testOneRun(net2, 5, 500, adadelta=True)
 
     #crossValidate(net, 10, learning_rate=0.008)
     #hyperoptimization(20)
 
-    #net.graphCosts(1)
+
+    net.graphCosts(1)
+    net.graphWeights()
     #net2.graphCosts(1)
+
+    #net2.graphWeights()
     plt.show()
 
 

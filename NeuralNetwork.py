@@ -301,6 +301,84 @@ class NeuralNetwork:
         plt.legend()
         return
 
+    def graphWeights(self):
+        # Graph weights of all nodes of the network
+        def makeXAxis(weight_array):
+            # Generates the x-axis to plot
+            # Each weight is centered around the input node's number on the x-axis with some jitter
+
+            # skip bias node
+            weight_array = weight_array[:, 1:]
+            x_axis = np.zeros(weight_array.shape)
+            for i in range(weight_array.shape[1]):
+                x_axis[:, i] = i+1  # each column is the number of the input node
+
+            # Add some jitter to see better
+            jitter = np.random.uniform(-0.15, 0.15, weight_array.shape)
+
+            x_axis += jitter
+            return x_axis
+
+
+        # First hidden layer
+        x_axis = makeXAxis(self.hid_weights[0])
+
+        plt.figure()
+        plt.scatter(x_axis, self.hid_weights[0][:, 1:], marker="+")
+        plt.title("Hidden layer 1")
+        plt.grid()
+
+        # Output layer
+        x_axis = makeXAxis(self.out_weights)
+        plt.figure()
+        plt.scatter(x_axis, self.out_weights[:, 1:], marker="+")
+        plt.title("Output layer")
+        plt.grid()
+
+        # Plot weights that are nonzero (only works for 1 hid layer)
+        for i in range(1, self.out_weights.shape[1]):  # skip bias node
+
+            if abs(self.out_weights[0, i]) > 0.05:
+                self.graphWeightNode(1, i, self.out_weights[0, i])
+
+        return
+
+    def graphWeightNode(self, layer, node_num, out_weight="null"):
+        # Graphs the input and output weights to a single node
+        # Can only specify a hidden layer
+        # node_num and layer start at 1 (bias node is node 0 but it isn't graphed)
+        # out_weight is the weight that the output associates to that node (only works for last hid layer)
+
+        # inputs are ith row of previous layer
+        # outputs are ith col of next layer
+
+
+        inputs = self.hid_weights[layer-1][node_num-1, 1:]  # skip bias node
+
+        if layer == self.nb_hidden_layers:  # Uses output layer if it is the last hid layer
+            outputs = self.out_weights[:, node_num]
+        else:
+            outputs = self.hid_weights[layer][:, node_num]
+
+        x_axis = np.array(list(range(1, inputs.size+1))).astype(np.float32)
+
+        jitter = np.random.uniform(-0.15, 0.15, inputs.shape)
+
+        x_axis += jitter
+
+        plt.figure()
+        plt.title("Input/output of node " + str(layer) + ", " + str(node_num) + " out: " + str(out_weight))
+        plt.scatter(x_axis, inputs, marker="x")
+        plt.grid()
+
+        # This could be used for intermediate hidden layers
+        #x_axis = np.array(list(range(1, outputs.size+1)))
+        #jitter = np.random.uniform(-0.15, 0.15, outputs.shape)
+        #x_axis += jitter
+
+        #plt.scatter(x_axis, outputs, c='r', marker='x')
+        return
+
     def test(self, X, y, iterations, learning_rate, grad_decay, epsilon, adadelta, test_frac=0, X_test=None, y_test=None):
         # Trains the neural net and prints the final training and testing errors (and the minimum test error)
         # If X_test and y_test are given then those are used as the test sets
@@ -378,4 +456,9 @@ class NeuralNetwork:
 
 if __name__ == "__main__":
 
+    net = NeuralNetwork(34, 80, 1, 1, 7)
+    #net.graphWeights()
+
+    net.graphWeightNode(1, 5)
+    plt.show()
     pass
