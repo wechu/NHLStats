@@ -343,40 +343,37 @@ class NeuralNetwork:
 
         return
 
-    def graphWeightNode(self, layer, node_num, out_weight="null"):
+    def graphWeightNode(self, layer, node_num, title_out_weight=None, output_weights=False):
         # Graphs the input and output weights to a single node
         # Can only specify a hidden layer
         # node_num and layer start at 1 (bias node is node 0 but it isn't graphed)
-        # out_weight is the weight that the output associates to that node (only works for last hid layer)
+        # title_out_weight is the weight that the output associates to that node (only works for last hid layer)
 
         # inputs are ith row of previous layer
         # outputs are ith col of next layer
 
-
         inputs = self.hid_weights[layer-1][node_num-1, 1:]  # skip bias node
 
-        if layer == self.nb_hidden_layers:  # Uses output layer if it is the last hid layer
-            outputs = self.out_weights[:, node_num]
-        else:
-            outputs = self.hid_weights[layer][:, node_num]
-
-        x_axis = np.array(list(range(1, inputs.size+1))).astype(np.float32)
-
-        jitter = np.random.uniform(-0.15, 0.15, inputs.shape)
-
-        x_axis += jitter
+        x_axis = np.array(list(range(1, inputs.size+1)))
 
         plt.figure()
-        plt.title("Input/output of node " + str(layer) + ", " + str(node_num) + " out: " + str(out_weight))
+        if title_out_weight is not None:
+            plt.title("Input/output of node " + str(layer) + ", " + str(node_num) + " out weight: " + "{0:.2f}".format(title_out_weight))
+        else:
+            plt.title("Input/output of node " + str(layer) + ", " + str(node_num))
         plt.scatter(x_axis, inputs, marker="x")
         plt.grid()
 
         # This could be used for intermediate hidden layers
-        #x_axis = np.array(list(range(1, outputs.size+1)))
-        #jitter = np.random.uniform(-0.15, 0.15, outputs.shape)
-        #x_axis += jitter
+        if output_weights:
+            if layer == self.nb_hidden_layers:  # Uses output layer if it is the last hid layer
+                outputs = self.out_weights[:, node_num]
+            else:
+                outputs = self.hid_weights[layer][:, node_num]
 
-        #plt.scatter(x_axis, outputs, c='r', marker='x')
+            x_axis = np.array(list(range(1, outputs.size+1)))
+            plt.scatter(x_axis, outputs, c='r', marker='x')
+
         return
 
     def test(self, X, y, iterations, learning_rate, grad_decay, epsilon, adadelta, test_frac=0, X_test=None, y_test=None):

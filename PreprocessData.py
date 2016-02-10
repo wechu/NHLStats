@@ -4,15 +4,15 @@ import math
 from operator import itemgetter
 
 # Current data legend
-# 0 #Wins
-# 1 #Points
-# 2 #Goals for - Goals against
-# 3 #Shots for - Shots against
-# 4 #Power play goals - power play goals against
-# 5 #Power play opportunities - times shorthanded
-# 6 #Face off wins - face off losts
-# 7-11 #SATs (corsi)
-# 12-16 #USATs (fenwick)
+# 1 #Wins
+# 2 #Points
+# 3 #Goals for - Goals against
+# 4 #Shots for - Shots against
+# 5 #Power play goals - power play goals against
+# 6 #Power play opportunities - times shorthanded
+# 7 #Face off wins - face off losts
+# 8-12 #SATs (corsi)
+# 13-17 #USATs (fenwick)
 
 class PreProcessing:
     def __init__(self, year):

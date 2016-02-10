@@ -183,17 +183,16 @@ if __name__ == '__main__':
     #random.seed(12)
     #np.random.seed(12)
 
-    net = nn.NeuralNetwork(34, 40, 1, nb_hidden_layers=1, weight_decay=14)
+    net = nn.NeuralNetwork(34, 40, 1, nb_hidden_layers=1, weight_decay=12)
 
     #trainingSizeTest(net, 500, 0.008)
     #net2 = net.clone()
-    testOneRun(net, 5, 300, learning_rate=0.0085, adadelta=False)
+    testOneRun(net, 5, 300, learning_rate=0.0075, adadelta=False)
 
     #testOneRun(net2, 5, 500, adadelta=True)
 
     #crossValidate(net, 10, learning_rate=0.008)
     #hyperoptimization(20)
-
 
     net.graphCosts(1)
     net.graphWeights()
