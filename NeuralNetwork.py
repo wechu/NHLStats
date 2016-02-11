@@ -338,7 +338,7 @@ class NeuralNetwork:
         # Plot weights that are nonzero (only works for 1 hid layer)
         for i in range(1, self.out_weights.shape[1]):  # skip bias node
 
-            if abs(self.out_weights[0, i]) > 0.05:
+            if abs(self.out_weights[0, i]) > 0.1:
                 self.graphWeightNode(1, i, self.out_weights[0, i])
 
         return
@@ -453,9 +453,4 @@ class NeuralNetwork:
 
 if __name__ == "__main__":
 
-    net = NeuralNetwork(34, 80, 1, 1, 7)
-    #net.graphWeights()
-
-    net.graphWeightNode(1, 5)
-    plt.show()
     pass

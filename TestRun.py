@@ -186,6 +186,7 @@ if __name__ == '__main__':
     net = nn.NeuralNetwork(34, 40, 1, nb_hidden_layers=1, weight_decay=12)
 
     #trainingSizeTest(net, 500, 0.008)
+
     #net2 = net.clone()
     testOneRun(net, 5, 300, learning_rate=0.0075, adadelta=False)
 
@@ -197,7 +198,6 @@ if __name__ == '__main__':
     net.graphCosts(1)
     net.graphWeights()
     #net2.graphCosts(1)
-
     #net2.graphWeights()
     plt.show()
 
