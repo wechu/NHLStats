@@ -22,16 +22,19 @@ class NeuralNetwork:
 
         # Initialize weight matrices to random values
         # Each hidden layer gets its own matrix
-        b = 0.3  # uniform distribution bounds
         # Other hidden layer weights
-        self.hid_weights = [np.random.uniform(-b, b, (self.nb_nodes_per_layer, self.nb_nodes_per_layer + 1)) for i in range(self.nb_hidden_layers - 1)]
+        self.b2 = math.sqrt(6 / (2 * nb_nodes_per_layer))   # uniform distribution bounds: approx. sqrt(6)/ sqrt(fan-in + fan-out)
+        self.hid_weights = [np.random.uniform(-self.b2, self.b2, (self.nb_nodes_per_layer, self.nb_nodes_per_layer + 1)) for i in range(self.nb_hidden_layers - 1)]
 
         # First hidden layer weights
-        self.hid_weights.insert(0, np.random.uniform(-b, b, (self.nb_nodes_per_layer, self.nb_features + 1)))
+        self.b1 = math.sqrt(6 / (nb_features + nb_nodes_per_layer))
+        self.hid_weights.insert(0, np.random.uniform(-self.b1, self.b1, (self.nb_nodes_per_layer, self.nb_features + 1)))
 
         # Output layer weights
-        self.out_weights = np.random.uniform(-b, b, (self.nb_outputs, self.nb_nodes_per_layer + 1))
+        self.b3 = math.sqrt(6 / (nb_nodes_per_layer + nb_outputs))
+        self.out_weights = np.random.uniform(-self.b3, self.b3, (self.nb_outputs, self.nb_nodes_per_layer + 1))
 
+        #print("Weight bounds:", self.b1, self.b2, self.b3)
         # dimensions of matrices: (number of nodes in the next layer, number of nodes in the current layer + 1)
         # add 1 to number of features for the bias unit
 
@@ -50,9 +53,9 @@ class NeuralNetwork:
         self.test_class_error = []
         self.iterations = []
 
-        self.hid_weights = [np.random.uniform(-1, 1, (self.nb_nodes_per_layer, self.nb_nodes_per_layer + 1)) for i in range(self.nb_hidden_layers - 1)]
-        self.hid_weights.insert(0, np.random.uniform(-1, 1, (self.nb_nodes_per_layer, self.nb_features + 1)))
-        self.out_weights = np.random.uniform(-1, 1, (self.nb_outputs, self.nb_nodes_per_layer + 1))
+        self.hid_weights = [np.random.uniform(-self.b2, self.b2, (self.nb_nodes_per_layer, self.nb_nodes_per_layer + 1)) for i in range(self.nb_hidden_layers - 1)]
+        self.hid_weights.insert(0, np.random.uniform(-self.b1, self.b1, (self.nb_nodes_per_layer, self.nb_features + 1)))
+        self.out_weights = np.random.uniform(-self.b3, self.b3, (self.nb_outputs, self.nb_nodes_per_layer + 1))
 
     def train(self, X, y, iterations=100, learning_rate=0, grad_decay=0.9, epsilon=0.000001, adadelta=False, test_X=None, test_y=None, showCost=False):
         # Uses RMSProp or Adadelta to train the network
@@ -79,6 +82,7 @@ class NeuralNetwork:
         annealing_constant = 200
 
         # Minibatch update paramters
+        print("Nb training examples:", len(X))
         minibatch_size = 100
         minibatch_nb = -1  # current minibatch number
 
@@ -295,6 +299,81 @@ class NeuralNetwork:
         if self.test_error:
             plt.plot(self.iterations[start:], self.test_error[start:], label="Test")
         plt.legend()
+        return
+
+    def graphWeights(self):
+        # Graph weights of all nodes of the network
+        def makeXAxis(weight_array):
+            # Generates the x-axis to plot
+            # Each weight is centered around the input node's number on the x-axis with some jitter
+
+            # skip bias node
+            weight_array = weight_array[:, 1:]
+            x_axis = np.zeros(weight_array.shape)
+            for i in range(weight_array.shape[1]):
+                x_axis[:, i] = i+1  # each column is the number of the input node
+
+            # Add some jitter to see better
+            jitter = np.random.uniform(-0.15, 0.15, weight_array.shape)
+
+            x_axis += jitter
+            return x_axis
+
+
+        # First hidden layer
+        x_axis = makeXAxis(self.hid_weights[0])
+
+        plt.figure()
+        plt.scatter(x_axis, self.hid_weights[0][:, 1:], marker="+")
+        plt.title("Hidden layer 1")
+        plt.grid()
+
+        # Output layer
+        x_axis = makeXAxis(self.out_weights)
+        plt.figure()
+        plt.scatter(x_axis, self.out_weights[:, 1:], marker="+")
+        plt.title("Output layer")
+        plt.grid()
+
+        # Plot weights that are nonzero (only works for 1 hid layer)
+        for i in range(1, self.out_weights.shape[1]):  # skip bias node
+
+            if abs(self.out_weights[0, i]) > 0.1:
+                self.graphWeightNode(1, i, self.out_weights[0, i])
+
+        return
+
+    def graphWeightNode(self, layer, node_num, title_out_weight=None, output_weights=False):
+        # Graphs the input and output weights to a single node
+        # Can only specify a hidden layer
+        # node_num and layer start at 1 (bias node is node 0 but it isn't graphed)
+        # title_out_weight is the weight that the output associates to that node (only works for last hid layer)
+
+        # inputs are ith row of previous layer
+        # outputs are ith col of next layer
+
+        inputs = self.hid_weights[layer-1][node_num-1, 1:]  # skip bias node
+
+        x_axis = np.array(list(range(1, inputs.size+1)))
+
+        plt.figure()
+        if title_out_weight is not None:
+            plt.title("Input/output of node " + str(layer) + ", " + str(node_num) + " out weight: " + "{0:.2f}".format(title_out_weight))
+        else:
+            plt.title("Input/output of node " + str(layer) + ", " + str(node_num))
+        plt.scatter(x_axis, inputs, marker="x")
+        plt.grid()
+
+        # This could be used for intermediate hidden layers
+        if output_weights:
+            if layer == self.nb_hidden_layers:  # Uses output layer if it is the last hid layer
+                outputs = self.out_weights[:, node_num]
+            else:
+                outputs = self.hid_weights[layer][:, node_num]
+
+            x_axis = np.array(list(range(1, outputs.size+1)))
+            plt.scatter(x_axis, outputs, c='r', marker='x')
+
         return
 
     def test(self, X, y, iterations, learning_rate, grad_decay, epsilon, adadelta, test_frac=0, X_test=None, y_test=None):

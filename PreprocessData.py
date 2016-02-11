@@ -3,9 +3,20 @@ import numpy as np
 import math
 from operator import itemgetter
 
+# Current data legend
+# 1 #Wins
+# 2 #Points
+# 3 #Goals for - Goals against
+# 4 #Shots for - Shots against
+# 5 #Power play goals - power play goals against
+# 6 #Power play opportunities - times shorthanded
+# 7 #Face off wins - face off losts
+# 8-12 #SATs (corsi)
+# 13-17 #USATs (fenwick)
+
 class PreProcessing:
     def __init__(self, year):
-
+        self.year = year
         ###imports team legend
         self.team_legend = []
         with open('Team_legend.csv', 'r') as csvfile:
@@ -166,7 +177,7 @@ class PreProcessing:
         else:
             self.elo_team = [[1500 for i in range(len(self.inputs_diff[0])-2)] for j in range(len(self.team_index))]
             self.inputs_raw = []
-            with open('elo_' + str(year) + '.csv', 'r') as csvfile:
+            with open('elo_' + str(self.year) + '.csv', 'r') as csvfile:
                 next(csvfile)
                 reader = csv.reader(csvfile)
                 for row in reader:
@@ -215,7 +226,7 @@ class PreProcessing:
             # data[-1][0:0] = [self.team_index.index(game[0])]
             data[-1].insert(0, int(game[3]))
 
-        nb_skipped = 0 # is it still necessary to skip games?
+        nb_skipped = 50 # is it still necessary to skip games?
         data = data[nb_skipped:]
         #data structure:
             # 0 - win indicator
@@ -351,4 +362,7 @@ def preprocessing_final(year1, year2, file_name):
     normalized_data, normalized_test_data = normalize(data_final, [])
     export_data(file_name, normalized_data)
 
-# preprocessing_final(2014, 2014, 't3')
+if __name__ == "__main__":
+    pass
+    # preprocessing_final(2014, 2014, 't3')
+
