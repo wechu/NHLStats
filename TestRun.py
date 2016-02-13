@@ -13,7 +13,7 @@ def crossValidate(net, nb_folds, iterations=1000, learning_rate=0.01, grad_decay
     # Splits the data into nb_folds batches using each batch as a testing set in turn and rest as the training set
 
     ######## Need to fix: how to train on multiple years at once?
-    data_trains, data_tests = pp.preprocessing_cross_valid(2014, nb_folds)
+    data_trains, data_tests = pp.preprocessing_cross_valid(2014, 2014, nb_folds)
     for i in range(nb_folds):
         np.random.shuffle(data_trains[i])  # shuffles training examples
 
@@ -80,7 +80,8 @@ def crossValidate(net, nb_folds, iterations=1000, learning_rate=0.01, grad_decay
 
 def makeOneFold(nb_folds):
     # Returns one fold from the cross-validation training set
-    data_trains, data_tests = pp.preprocessing_cross_valid(2014, nb_folds)
+    # Note: has to create the whole cross-validation set (could be improved)
+    data_trains, data_tests = pp.preprocessing_cross_valid(2014, 2014, nb_folds)
     rand_fold = random.randint(0, nb_folds-1)  # Pick a random fold to test
 
     np.random.shuffle(data_trains[rand_fold])  # shuffles training examples
@@ -124,11 +125,11 @@ def hyperoptimization(iters):
         print("\n---- Optimization", i+1, "--")
         #s_time = time.clock()
 
-        nb_hidden_nodes = int(random.uniform(20, 100)) #int(math.pow(10, random.uniform(1.5, 2.5)))
-        weight_decay = random.uniform(5, 20) #math.pow(10, random.uniform(0, 1.5))
+        nb_hidden_nodes = int(random.uniform(10, 80)) #int(math.pow(10, random.uniform(1.5, 2.5)))
+        weight_decay = random.uniform(5, 15) #math.pow(10, random.uniform(0, 1.5))
         learning_rate = math.pow(10, random.uniform(-2.5, -1.5)) #not relevant for adadelta
         grad_decay = 0.9
-        epsilon = 0.000001
+        epsilon = 0.0000001
 
         print(nb_hidden_nodes, weight_decay, learning_rate, "\n")
 
@@ -183,20 +184,20 @@ if __name__ == '__main__':
     #random.seed(12)
     #np.random.seed(12)
 
-    net = nn.NeuralNetwork(34, 40, 1, nb_hidden_layers=1, weight_decay=12)
+    net = nn.NeuralNetwork(34, 60, 1, nb_hidden_layers=1, weight_decay=0.0)
 
     #trainingSizeTest(net, 500, 0.008)
 
     #net2 = net.clone()
-    testOneRun(net, 5, 300, learning_rate=0.0075, adadelta=False)
+    testOneRun(net, 5, 3000, learning_rate=0.0075, adadelta=False)
 
     #testOneRun(net2, 5, 500, adadelta=True)
 
-    #crossValidate(net, 10, learning_rate=0.008)
+    #crossValidate(net, 9, learning_rate=0.0075)
     #hyperoptimization(20)
 
-    net.graphCosts(1)
-    net.graphWeights()
+    net.graphCosts()
+    net.graphWeights(False)
     #net2.graphCosts(1)
     #net2.graphWeights()
     plt.show()

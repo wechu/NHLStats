@@ -79,11 +79,11 @@ class NeuralNetwork:
         out_change = np.zeros(self.out_weights.shape)
 
         init_learning_rate = learning_rate
-        annealing_constant = 200
+        annealing_constant = 300
 
         # Minibatch update paramters
         print("Nb training examples:", len(X))
-        minibatch_size = 100
+        minibatch_size = int(len(X) / 10) + 1
         minibatch_nb = -1  # current minibatch number
 
         for j in range(iterations):
@@ -301,7 +301,7 @@ class NeuralNetwork:
         plt.legend()
         return
 
-    def graphWeights(self):
+    def graphWeights(self, plot_nodes=False):
         # Graph weights of all nodes of the network
         def makeXAxis(weight_array):
             # Generates the x-axis to plot
@@ -336,10 +336,11 @@ class NeuralNetwork:
         plt.grid()
 
         # Plot weights that are nonzero (only works for 1 hid layer)
-        for i in range(1, self.out_weights.shape[1]):  # skip bias node
+        if plot_nodes:
+            for i in range(1, self.out_weights.shape[1]):  # skip bias node
 
-            if abs(self.out_weights[0, i]) > 0.1:
-                self.graphWeightNode(1, i, self.out_weights[0, i])
+                if abs(self.out_weights[0, i]) > 0.1:
+                    self.graphWeightNode(1, i, self.out_weights[0, i])
 
         return
 
