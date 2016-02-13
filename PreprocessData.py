@@ -215,10 +215,6 @@ class PreProcessing:
                                 self.elo_team[self.team_index.index(game[0])][i] += delta
                                 self.elo_team[self.team_index.index(game[2])][i] -= delta
 
-
-
-
-
             # data[-1][0:0] = [int(self.team_legend[self.team_index.index(game[2])][i]) for i in range(2, len(self.team_legend[0]))]
             # data[-1][0:0] = [int(self.team_legend[self.team_index.index(game[0])][i]) for i in range(2, len(self.team_legend[0]))]
             # data[-1][0:0] = [self.team_index.index(game[2])]
@@ -346,9 +342,9 @@ def preprocessing_cross_valid(year_start, year_end, nb_folds):
             data_test_final[k].extend(data_test[k])
 
     for i in range(nb_folds):
-        normalized_data_a, normalized_test_data_a = normalize(data_final[i], data_test_final[i])
-        normalized_data.append(normalized_data_a)
-        normalized_test_data.append(normalized_test_data_a)
+        normalized_data_temp, normalized_test_data_temp = normalize(data_final[i], data_test_final[i])
+        normalized_data.append(normalized_data_temp)
+        normalized_test_data.append(normalized_test_data_temp)
 
     return normalized_data, normalized_test_data
 
