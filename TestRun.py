@@ -13,7 +13,7 @@ def crossValidate(net, nb_folds, iterations=1000, learning_rate=0.01, grad_decay
     # Splits the data into nb_folds batches using each batch as a testing set in turn and rest as the training set
 
     ######## Need to fix: how to train on multiple years at once?
-    data_trains, data_tests = pp.preprocessing_cross_valid(2014, nb_folds)
+    data_trains, data_tests = pp.preprocessing_cross_valid(2014, 2014, nb_folds)
     for i in range(nb_folds):
         np.random.shuffle(data_trains[i])  # shuffles training examples
 
@@ -80,7 +80,7 @@ def crossValidate(net, nb_folds, iterations=1000, learning_rate=0.01, grad_decay
 
 def makeOneFold(nb_folds):
     # Returns one fold from the cross-validation training set
-    data_trains, data_tests = pp.preprocessing_cross_valid(2014, nb_folds)
+    data_trains, data_tests = pp.preprocessing_cross_valid(2014, 2014, nb_folds)
     rand_fold = random.randint(0, nb_folds-1)  # Pick a random fold to test
 
     np.random.shuffle(data_trains[rand_fold])  # shuffles training examples

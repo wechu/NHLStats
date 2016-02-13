@@ -3,6 +3,8 @@ import numpy as np
 import math
 from operator import itemgetter
 
+# Change self.team_index
+
 # Current data legend
 # 1 #Wins
 # 2 #Points
@@ -142,7 +144,6 @@ class PreProcessing:
             self.inputs_diff[-1].extend(game[23:28]) #SATs (corsi)
             self.inputs_diff[-1].extend(game[30:35]) #USATs (fenwick)
 
-
     def delta_elo(self, k_factor, elo_1, elo_2, score_diff, margin_victory=True):
         #calculates the change in elo for team with elo_1
         expected_result = 1/(1+10**((elo_2-elo_1)/400))
@@ -175,16 +176,14 @@ class PreProcessing:
             self.elo_team = [[1500 for i in range(len(self.inputs_diff[0])-2)] for j in range(len(self.team_index))]
 
         else:
-            self.elo_team = [[1500 for i in range(len(self.inputs_diff[0])-2)] for j in range(len(self.team_index))]
-            self.inputs_raw = []
+            self.elo_team = []
+
             with open('elo_' + str(self.year) + '.csv', 'r') as csvfile:
                 next(csvfile)
                 reader = csv.reader(csvfile)
                 for row in reader:
-                    self.inputs_raw.append([entry for entry in row])
+                    self.elo_team.append([entry for entry in row])
             csvfile.close()
-
-
 
         data = []
         k_factor = 10 #judgement call based on USCF approximation and Nate Silver's previous work with elo
@@ -285,8 +284,9 @@ class PreProcessing:
         comments='# ',          # character to use for comments
         )
 
-
     def valid_builder(self, step, first_year=False):
+        # Creates cross-validation sets
+        # Returns list of all training sets and list of all testing sets
         if step == 0:
             return self.aggregation(self.training_games, first_year), None
 
@@ -331,30 +331,37 @@ def export_data(file_name, save_data):
     comments='# ',          # character to use for comments
     )
 
-def preprocessing_cross_valid(year, nb_folds):
-    # Creates cross validation sets
-    p = PreProcessing(year)
-    data, data_test = p.valid_builder(nb_folds)
+def preprocessing_cross_valid(year_start, year_end, nb_folds):
+    # Creates cross validation sets over multiple years
+    data_final = [[] for i in range(nb_folds)]
+    data_test_final = [[] for i in range(nb_folds)]
     normalized_data = []
     normalized_test_data = []
+
+    for j in range(year_start, year_end+1):
+        p = PreProcessing(j)
+        data, data_test = p.valid_builder(nb_folds, j == year_start)
+        for k in range(nb_folds):
+            data_final[k].extend(data[k])
+            data_test_final[k].extend(data_test[k])
+
     for i in range(nb_folds):
-        normalized_data_a, normalized_test_data_a = normalize(data[i], data_test[i])
+        normalized_data_a, normalized_test_data_a = normalize(data_final[i], data_test_final[i])
         normalized_data.append(normalized_data_a)
         normalized_test_data.append(normalized_test_data_a)
 
     return normalized_data, normalized_test_data
 
 
-def preprocessing_final(year1, year2, file_name):
+def preprocessing_final(year_start, year_end, file_name):
     # Preprocesses all data
     # Eg: preprocessing_final(2013, 'test')
     data_final = []
-    for i in range(year1, year2+1):
+    for i in range(year_start, year_end+1):
         p = PreProcessing(i)
-        if i == year1:
-            data, data_test = p.valid_builder(0, True)
-        else:
-            data, data_test = p.valid_builder(0)
+
+        data, data_test = p.valid_builder(0, i == year_start)
+
         p.export_elo(i)
         data_final.extend(data)
         print('Preprocessing for year ' + str(i) + '-' + str(i+1) + ' completed')
@@ -364,5 +371,6 @@ def preprocessing_final(year1, year2, file_name):
 
 if __name__ == "__main__":
     pass
-    # preprocessing_final(2014, 2014, 't3')
+    #preprocessing_final(2014, 2014, 't3')
 
+    preprocessing_cross_valid(2014, 2014, 10)
