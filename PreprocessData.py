@@ -18,7 +18,9 @@ from operator import itemgetter
 
 class PreProcessing:
     def __init__(self, year):
+
         self.year = year
+
         ###imports team legend
         self.team_legend = []
         with open('Team_legend.csv', 'r') as csvfile:
@@ -26,7 +28,7 @@ class PreProcessing:
             for row in reader:
                 self.team_legend.append([entry for entry in row])
         csvfile.close()
-        
+
         self.team_index = []
         for team in self.team_legend:
             self.team_index.append(team[0])
@@ -40,14 +42,39 @@ class PreProcessing:
                 self.inputs_raw.append([entry for entry in row])
         csvfile.close()
 
+        ###imports advanced stats of season games
+        self.advanced_stats = []
+        with open('advanced_team_stats_' + str(year) + '_' + str(year+1) + '.csv', 'r') as csvfile:
+            next(csvfile)
+            reader = csv.reader(csvfile)
+            for row in reader:
+                self.advanced_stats.append([entry for entry in row])
+        csvfile.close()
+
+        for game in self.inputs_raw:
+            for stat in self.advanced_stats:
+                if game[0] == stat[0] and game[1][0:10] == stat[1][0:10] and game[2] == stat[2]:
+                    game.extend(stat[3:])
+
+
+        max_length = max(len(game) for game in self.inputs_raw)
+        for game in self.inputs_raw:
+            if len(game) < max_length:
+                game.extend([0]*(max_length-len(game)))
+
+
+
+
+
+
         ###replace team name by abbreviation, add home game indicator
         for game in self.inputs_raw:
             game[0] = self.team_legend[self.team_index.index(game[0])][1]
 
             if game[1][12:14] == 'vs':
-                game.insert(22,'home')
+                game.insert(22, 'home')
             else:
-                game.insert(22,'away')
+                game.insert(22, 'away')
             game[1] = game[1][0:10]
 
         self.team_index.clear()
@@ -57,24 +84,9 @@ class PreProcessing:
         ###sort games by date'''
         self.inputs_raw.sort(key=itemgetter(1))
 
-
-        ###replace dates by ordered numbers
-        date_list = []
+        ### keep only dates
         for game in self.inputs_raw:
-            date_list.append(game[1])
-
-        date_numbered = [1]*len(date_list)
-        date_numbered[0] = 0
-        counter = 0
-        for i in range(1, len(date_list)):
-            if date_list[i] == date_list[i-1]:
-                date_numbered[i] = counter
-            else:
-                counter += 1
-                date_numbered[i] = counter
-
-        for i in range(0, len(self.inputs_raw)):
-            self.inputs_raw[i][1] = date_numbered[i]
+            game[1] = game[1][0:10]
 
         ###reducing columns in self.inputs_raw
         for game in self.inputs_raw:
@@ -124,10 +136,6 @@ class PreProcessing:
         for game in self.inputs_raw:
             if game[20] == 'home':
                 self.training_games.append(game[0:4])
-
-        # for game in self.inputs_raw:
-        #     game.pop(20) #home/away indicator
-        # #     game.pop(2) #opposing team
 
         ## create list of differences
         self.inputs_diff = []
@@ -367,6 +375,6 @@ def preprocessing_final(year_start, year_end, file_name):
 
 if __name__ == "__main__":
     pass
-    #preprocessing_final(2014, 2014, 't3')
+    preprocessing_final(2014, 2014, 't4')
 
-    preprocessing_cross_valid(2014, 2014, 10)
+    # preprocessing_cross_valid(2014, 2014, 10)
