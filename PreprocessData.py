@@ -61,11 +61,10 @@ class PreProcessing:
         for game in self.inputs_raw:
             if len(game) < max_length:
                 game.extend([0]*(max_length-len(game)))
+                print(game)
 
 
-
-
-
+        # print(self.inputs_raw)
 
         ###replace team name by abbreviation, add home game indicator
         for game in self.inputs_raw:
@@ -190,7 +189,7 @@ class PreProcessing:
                 next(csvfile)
                 reader = csv.reader(csvfile)
                 for row in reader:
-                    self.elo_team.append([entry for entry in row])
+                    self.elo_team.append([float(entry) for entry in row])
             csvfile.close()
 
         data = []
@@ -375,6 +374,6 @@ def preprocessing_final(year_start, year_end, file_name):
 
 if __name__ == "__main__":
     pass
-    preprocessing_final(2014, 2014, 't4')
+    preprocessing_final(2013, 2014, 't4')
 
     # preprocessing_cross_valid(2014, 2014, 10)
