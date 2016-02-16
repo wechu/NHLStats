@@ -18,7 +18,9 @@ from operator import itemgetter
 
 class PreProcessing:
     def __init__(self, year):
+
         self.year = year
+
         ###imports team legend
         self.team_legend = []
         with open('Team_legend.csv', 'r') as csvfile:
@@ -26,7 +28,7 @@ class PreProcessing:
             for row in reader:
                 self.team_legend.append([entry for entry in row])
         csvfile.close()
-        
+
         self.team_index = []
         for team in self.team_legend:
             self.team_index.append(team[0])
@@ -40,14 +42,36 @@ class PreProcessing:
                 self.inputs_raw.append([entry for entry in row])
         csvfile.close()
 
+        ###imports advanced stats of season games
+        self.advanced_stats = []
+        with open('advanced_team_stats_' + str(year) + '_' + str(year+1) + '.csv', 'r') as csvfile:
+            next(csvfile)
+            reader = csv.reader(csvfile)
+            for row in reader:
+                self.advanced_stats.append([entry for entry in row])
+        csvfile.close()
+
+        for game in self.inputs_raw:
+            for stat in self.advanced_stats:
+                if game[0] == stat[0] and game[1][0:10] == stat[1][0:10] and game[2] == stat[2]:
+                    game.extend(stat[3:])
+
+
+        max_length = max(len(game) for game in self.inputs_raw)
+        for game in self.inputs_raw:
+            if len(game) < max_length:
+                game.extend([0]*(max_length-len(game)))
+                print(game)
+
+
         ###replace team name by abbreviation, add home game indicator
         for game in self.inputs_raw:
             game[0] = self.team_legend[self.team_index.index(game[0])][1]
 
             if game[1][12:14] == 'vs':
-                game.insert(22,'home')
+                game.insert(22, 'home')
             else:
-                game.insert(22,'away')
+                game.insert(22, 'away')
             game[1] = game[1][0:10]
 
         self.team_index.clear()
@@ -57,24 +81,9 @@ class PreProcessing:
         ###sort games by date'''
         self.inputs_raw.sort(key=itemgetter(1))
 
-
-        ###replace dates by ordered numbers
-        date_list = []
+        ### keep only dates
         for game in self.inputs_raw:
-            date_list.append(game[1])
-
-        date_numbered = [1]*len(date_list)
-        date_numbered[0] = 0
-        counter = 0
-        for i in range(1, len(date_list)):
-            if date_list[i] == date_list[i-1]:
-                date_numbered[i] = counter
-            else:
-                counter += 1
-                date_numbered[i] = counter
-
-        for i in range(0, len(self.inputs_raw)):
-            self.inputs_raw[i][1] = date_numbered[i]
+            game[1] = game[1][0:10]
 
         ###reducing columns in self.inputs_raw
         for game in self.inputs_raw:
@@ -125,10 +134,6 @@ class PreProcessing:
             if game[20] == 'home':
                 self.training_games.append(game[0:4])
 
-        # for game in self.inputs_raw:
-        #     game.pop(20) #home/away indicator
-        # #     game.pop(2) #opposing team
-
         ## create list of differences
         self.inputs_diff = []
         for game in self.inputs_raw:
@@ -172,18 +177,20 @@ class PreProcessing:
     def aggregation(self, game_set, first_year=False):
 
         if first_year:
-            #1500 initial elo will have to be revised eventually
+            #1500 initial elo
             self.elo_team = [[1500 for i in range(len(self.inputs_diff[0])-2)] for j in range(len(self.team_index))]
 
         else:
             self.elo_team = []
 
             with open('elo_' + str(self.year) + '.csv', 'r') as csvfile:
-                next(csvfile)
                 reader = csv.reader(csvfile)
                 for row in reader:
-                    self.elo_team.append([entry for entry in row])
+                    self.elo_team.append([float(entry) for entry in row])
             csvfile.close()
+
+        if len(self.elo_team) !=31:
+            print('warning: missing a team in elo matrix')
 
         data = []
         k_factor = 10 #judgement call based on USCF approximation and Nate Silver's previous work with elo
@@ -197,23 +204,32 @@ class PreProcessing:
                     if game[0] == row[0]: #if home team
                         data[-1][0:0] = self.elo_team[self.team_index.index(game[0])]  # Note: we enter the game before aggregating to not include the results of the game in the inputs
                         game_stats[0:0] = row[2:]
+
                     if game[2] == row[0]: #if away team
                         data[-1].extend(self.elo_team[self.team_index.index(game[2])])
                         game_stats.extend(row[2:])
 
-                    if len(data[-1]) == 2 * len(self.elo_team[0]):
-                        for i in range(len(self.elo_team[0])):
-                            old_elo_1 = float(data[-1][i])
-                            old_elo_2 = float(data[-1][i+len(self.elo_team[0])])
 
-                            if i == 0 or i == 1:
-                                delta = self.delta_elo(k_factor, old_elo_1, old_elo_2, float(game_stats[i]), False)
-                                self.elo_team[self.team_index.index(game[0])][i] += delta
-                                self.elo_team[self.team_index.index(game[2])][i] -= delta
-                            else:
-                                delta = self.delta_elo(k_factor, old_elo_1, old_elo_2, float(game_stats[i]))
-                                self.elo_team[self.team_index.index(game[0])][i] += delta
-                                self.elo_team[self.team_index.index(game[2])][i] -= delta
+            #updating elo
+            for i in range(len(self.elo_team[0])):
+                old_elo_1 = float(data[-1][i])
+                old_elo_2 = float(data[-1][i+len(self.elo_team[0])])
+
+                if i == 0 or i == 1:
+                    delta = self.delta_elo(k_factor, old_elo_1, old_elo_2, float(game_stats[i]), False)
+                    self.elo_team[self.team_index.index(game[0])][i] += delta
+                    self.elo_team[self.team_index.index(game[2])][i] -= delta
+
+                else:
+                    delta = self.delta_elo(k_factor, old_elo_1, old_elo_2, float(game_stats[i]))
+                    self.elo_team[self.team_index.index(game[0])][i] += delta
+                    self.elo_team[self.team_index.index(game[2])][i] -= delta
+
+            #testing elo changes
+            # if game[0] == 'CBJ' or game[2] == 'CBJ':
+            #     print(game)
+            #     print(self.elo_team[self.team_index.index('CBJ')][0])
+            #     pass
 
             # data[-1][0:0] = [int(self.team_legend[self.team_index.index(game[2])][i]) for i in range(2, len(self.team_legend[0]))]
             # data[-1][0:0] = [int(self.team_legend[self.team_index.index(game[0])][i]) for i in range(2, len(self.team_legend[0]))]
@@ -221,7 +237,7 @@ class PreProcessing:
             # data[-1][0:0] = [self.team_index.index(game[0])]
             data[-1].insert(0, int(game[3]))
 
-        nb_skipped = 50 # is it still necessary to skip games?
+        nb_skipped = 0 # is it still necessary to skip games?
         data = data[nb_skipped:]
         #data structure:
             # 0 - win indicator
@@ -367,6 +383,6 @@ def preprocessing_final(year_start, year_end, file_name):
 
 if __name__ == "__main__":
     pass
-    #preprocessing_final(2014, 2014, 't3')
+    preprocessing_final(2012, 2014, 't4')
 
-    preprocessing_cross_valid(2014, 2014, 10)
+    # preprocessing_cross_valid(2014, 2014, 10)
