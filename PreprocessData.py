@@ -184,11 +184,13 @@ class PreProcessing:
             self.elo_team = []
 
             with open('elo_' + str(self.year) + '.csv', 'r') as csvfile:
-                next(csvfile)
                 reader = csv.reader(csvfile)
                 for row in reader:
                     self.elo_team.append([float(entry) for entry in row])
             csvfile.close()
+
+        if len(self.elo_team) !=31:
+            print('warning: missing a team in elo matrix')
 
         data = []
         k_factor = 10 #judgement call based on USCF approximation and Nate Silver's previous work with elo
@@ -228,10 +230,6 @@ class PreProcessing:
             #     print(game)
             #     print(self.elo_team[self.team_index.index('CBJ')][0])
             #     pass
-
-
-
-
 
             # data[-1][0:0] = [int(self.team_legend[self.team_index.index(game[2])][i]) for i in range(2, len(self.team_legend[0]))]
             # data[-1][0:0] = [int(self.team_legend[self.team_index.index(game[0])][i]) for i in range(2, len(self.team_legend[0]))]
@@ -385,6 +383,6 @@ def preprocessing_final(year_start, year_end, file_name):
 
 if __name__ == "__main__":
     pass
-    preprocessing_final(2014, 2014, 't4')
+    preprocessing_final(2012, 2014, 't4')
 
     # preprocessing_cross_valid(2014, 2014, 10)
