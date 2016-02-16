@@ -64,8 +64,6 @@ class PreProcessing:
                 print(game)
 
 
-        # print(self.inputs_raw)
-
         ###replace team name by abbreviation, add home game indicator
         for game in self.inputs_raw:
             game[0] = self.team_legend[self.team_index.index(game[0])][1]
@@ -204,23 +202,36 @@ class PreProcessing:
                     if game[0] == row[0]: #if home team
                         data[-1][0:0] = self.elo_team[self.team_index.index(game[0])]  # Note: we enter the game before aggregating to not include the results of the game in the inputs
                         game_stats[0:0] = row[2:]
+
                     if game[2] == row[0]: #if away team
                         data[-1].extend(self.elo_team[self.team_index.index(game[2])])
                         game_stats.extend(row[2:])
 
-                    if len(data[-1]) == 2 * len(self.elo_team[0]):
-                        for i in range(len(self.elo_team[0])):
-                            old_elo_1 = float(data[-1][i])
-                            old_elo_2 = float(data[-1][i+len(self.elo_team[0])])
 
-                            if i == 0 or i == 1:
-                                delta = self.delta_elo(k_factor, old_elo_1, old_elo_2, float(game_stats[i]), False)
-                                self.elo_team[self.team_index.index(game[0])][i] += delta
-                                self.elo_team[self.team_index.index(game[2])][i] -= delta
-                            else:
-                                delta = self.delta_elo(k_factor, old_elo_1, old_elo_2, float(game_stats[i]))
-                                self.elo_team[self.team_index.index(game[0])][i] += delta
-                                self.elo_team[self.team_index.index(game[2])][i] -= delta
+            #updating elo
+            for i in range(len(self.elo_team[0])):
+                old_elo_1 = float(data[-1][i])
+                old_elo_2 = float(data[-1][i+len(self.elo_team[0])])
+
+                if i == 0 or i == 1:
+                    delta = self.delta_elo(k_factor, old_elo_1, old_elo_2, float(game_stats[i]), False)
+                    self.elo_team[self.team_index.index(game[0])][i] += delta
+                    self.elo_team[self.team_index.index(game[2])][i] -= delta
+
+                else:
+                    delta = self.delta_elo(k_factor, old_elo_1, old_elo_2, float(game_stats[i]))
+                    self.elo_team[self.team_index.index(game[0])][i] += delta
+                    self.elo_team[self.team_index.index(game[2])][i] -= delta
+
+            #testing elo changes
+            # if game[0] == 'CBJ' or game[2] == 'CBJ':
+            #     print(game)
+            #     print(self.elo_team[self.team_index.index('CBJ')][0])
+            #     pass
+
+
+
+
 
             # data[-1][0:0] = [int(self.team_legend[self.team_index.index(game[2])][i]) for i in range(2, len(self.team_legend[0]))]
             # data[-1][0:0] = [int(self.team_legend[self.team_index.index(game[0])][i]) for i in range(2, len(self.team_legend[0]))]
@@ -374,6 +385,6 @@ def preprocessing_final(year_start, year_end, file_name):
 
 if __name__ == "__main__":
     pass
-    preprocessing_final(2013, 2014, 't4')
+    preprocessing_final(2014, 2014, 't4')
 
     # preprocessing_cross_valid(2014, 2014, 10)
