@@ -177,7 +177,7 @@ class PreProcessing:
     def aggregation(self, game_set, first_year=False):
 
         if first_year:
-            #1500 initial elo will have to be revised eventually
+            #1500 initial elo
             self.elo_team = [[1500 for i in range(len(self.inputs_diff[0])-2)] for j in range(len(self.team_index))]
 
         else:
