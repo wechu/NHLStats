@@ -228,7 +228,7 @@ class PreProcessing:
             # data[-1][0:0] = [self.team_index.index(game[0])]
             data[-1].insert(0, int(game[3]))
 
-        nb_skipped = 50 # is it still necessary to skip games?
+        nb_skipped = 0 # is it still necessary to skip games?
         data = data[nb_skipped:]
         #data structure:
             # 0 - win indicator
