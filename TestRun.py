@@ -13,7 +13,7 @@ def crossValidate(net, nb_folds, iterations=1000, learning_rate=0.01, grad_decay
     # Splits the data into nb_folds batches using each batch as a testing set in turn and rest as the training set
 
     ######## Need to fix: how to train on multiple years at once?
-    data_trains, data_tests = pp.preprocessing_cross_valid(2014, 2014, nb_folds)
+    data_trains, data_tests = pp.preprocessing_cross_valid(2012, 2014, nb_folds)
     for i in range(nb_folds):
         np.random.shuffle(data_trains[i])  # shuffles training examples
 
@@ -81,7 +81,7 @@ def crossValidate(net, nb_folds, iterations=1000, learning_rate=0.01, grad_decay
 def makeOneFold(nb_folds):
     # Returns one fold from the cross-validation training set
     # Note: has to create the whole cross-validation set (could be improved)
-    data_trains, data_tests = pp.preprocessing_cross_valid(2014, 2014, nb_folds)
+    data_trains, data_tests = pp.preprocessing_cross_valid(2012, 2014, nb_folds)
     rand_fold = random.randint(0, nb_folds-1)  # Pick a random fold to test
 
     np.random.shuffle(data_trains[rand_fold])  # shuffles training examples
@@ -224,13 +224,16 @@ if __name__ == '__main__':
     #random.seed(12)
     #np.random.seed(12)
 
-    net = nn.NeuralNetwork(34, 300, 1, nb_hidden_layers=1, weight_decay=0)
+    net = nn.NeuralNetwork(34, 34, 1, nb_hidden_layers=4, weight_decay=18.0)
+
 
     #trainingSizeTest(net, 500, 0.008)
 
     #net2 = net.clone()
+
     #testOneRun(net, 5, 3000, learning_rate=0.0075, adadelta=False)
     sequentialValidate(net, 0.75, 30, 500, 0.0055)
+
     #testOneRun(net2, 5, 500, adadelta=True)
 
     #crossValidate(net, 9, learning_rate=0.0075)
