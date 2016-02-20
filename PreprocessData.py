@@ -283,6 +283,7 @@ class PreProcessing:
     def valid_builder(self, step, first_year=False):
         # Creates cross-validation sets
         # Returns list of all training sets and list of all testing sets
+        # Note: if step is 0, then it is a single list (not list of lists)
         if step == 0:
             return self.aggregation(self.training_games, first_year), None
 
@@ -349,7 +350,7 @@ def preprocessing_cross_valid(year_start, year_end, nb_folds):
     return normalized_data, normalized_test_data
 
 
-def preprocessing_final(year_start, year_end, file_name):
+def preprocessing_final(year_start, year_end, file_name=None, export=True):
     # Preprocesses all data
     # Eg: preprocessing_final(2013, 'test')
     data_final = []
@@ -362,8 +363,11 @@ def preprocessing_final(year_start, year_end, file_name):
         data_final.extend(data)
         print('Preprocessing for year ' + str(i) + '-' + str(i+1) + ' completed')
 
-    normalized_data, normalized_test_data = normalize(data_final, [])
-    export_data(file_name, normalized_data)
+    normalized_data = normalize(data_final, [])
+    if export:
+        export_data(file_name, normalized_data)
+
+    return normalized_data
 
 if __name__ == "__main__":
     pass

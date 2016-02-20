@@ -115,6 +115,45 @@ def testOneRun(net, nb_folds, iterations=1000, learning_rate=0.01, grad_decay=0.
     return temp[0]
 
 
+def sequentialValidate(net, start=0.5, step=1, iterations=1000, learning_rate=0.01, grad_decay=0.9, epsilon=0.000001, adadelta=False):
+    # Cross-validation procedure for time series data
+    # Trains on the first 'start' fraction of examples and predicts the next one
+    # Adds 'step' examples to training set and tests on the next example, repeat until all the examples have been used
+
+    data = pp.preprocessing_final(2014, 2014, export=False)[0]
+    x_data = data[:, 1:]
+    y_data = data[:, 0]
+
+    min_errs = []
+    test_errs = []
+    train_errs = []
+    train_class_errs = []
+    min_class_errs = []
+
+    nb_examples = int(start * len(data))
+    nb_runs = 0
+    print(len(x_data[nb_examples]))
+    while nb_examples < len(data):
+        net.reset()
+        temp = net.test(x_data[:nb_examples, :], y_data[:nb_examples], iterations, learning_rate, grad_decay, epsilon, adadelta, X_test=x_data[nb_examples:nb_examples+20, :], y_test=y_data[nb_examples:nb_examples+20])
+
+        min_errs.append(temp[0])
+        test_errs.append(temp[1])
+        train_errs.append(temp[2])
+        train_class_errs.append(temp[3])
+        min_class_errs.append(temp[4])
+
+        nb_examples += step
+        nb_runs += 1
+
+    print("\n----------")
+    print(net, "\tNb runs:", nb_runs)
+    print("Avg min:", sum(min_errs)/nb_runs, "\t\t\t", min_errs)
+    print("Avg final test:", sum(test_errs)/nb_runs, "\t\t\t", test_errs)
+    print("Avg final train:", sum(train_errs)/nb_runs, "\t\t\t", train_errs)
+    print("Avg final class ", sum(train_class_errs)/nb_runs, "\t\t\t", train_class_errs)
+    print("Avg min class ", sum(min_class_errs)/nb_runs, "\t\t\t", min_class_errs)
+
 def hyperoptimization(iters):
     # Uses random search to find good hyperparameters
     # Number of hidden nodes per layer, weight decay, learning rate
@@ -180,17 +219,18 @@ def trainingSizeTest(net, iterations, learning_rate, grad_decay=0.9, epsilon=0.0
 
     return
 
+
 if __name__ == '__main__':
     #random.seed(12)
     #np.random.seed(12)
 
-    net = nn.NeuralNetwork(34, 60, 1, nb_hidden_layers=1, weight_decay=0.0)
+    net = nn.NeuralNetwork(34, 300, 1, nb_hidden_layers=1, weight_decay=0)
 
     #trainingSizeTest(net, 500, 0.008)
 
     #net2 = net.clone()
-    testOneRun(net, 5, 3000, learning_rate=0.0075, adadelta=False)
-
+    #testOneRun(net, 5, 3000, learning_rate=0.0075, adadelta=False)
+    sequentialValidate(net, 0.75, 30, 500, 0.0055)
     #testOneRun(net2, 5, 500, adadelta=True)
 
     #crossValidate(net, 9, learning_rate=0.0075)
