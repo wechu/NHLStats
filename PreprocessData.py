@@ -61,7 +61,7 @@ class PreProcessing:
         for game in self.inputs_raw:
             if len(game) < max_length:
                 game.extend([0]*(max_length-len(game)))
-                print(game)
+                #print(game)
 
 
         ###replace team name by abbreviation, add home game indicator

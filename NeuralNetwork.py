@@ -79,7 +79,7 @@ class NeuralNetwork:
         out_change = np.zeros(self.out_weights.shape)
 
         init_learning_rate = learning_rate
-        annealing_constant = 300
+        annealing_constant = 200
 
         # Minibatch update paramters
         print("Nb training examples:", len(X))

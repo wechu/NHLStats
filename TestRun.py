@@ -120,7 +120,7 @@ def sequentialValidate(net, start=0.5, step=1, iterations=1000, learning_rate=0.
     # Trains on the first 'start' fraction of examples and predicts the next one
     # Adds 'step' examples to training set and tests on the next example, repeat until all the examples have been used
 
-    data = pp.preprocessing_final(2014, 2014, export=False)[0]
+    data = pp.preprocessing_final(2012, 2014, export=False)[0]
     x_data = data[:, 1:]
     y_data = data[:, 0]
 
@@ -164,8 +164,8 @@ def hyperoptimization(iters):
         print("\n---- Optimization", i+1, "--")
         #s_time = time.clock()
 
-        nb_hidden_nodes = int(random.uniform(10, 80)) #int(math.pow(10, random.uniform(1.5, 2.5)))
-        weight_decay = random.uniform(5, 15) #math.pow(10, random.uniform(0, 1.5))
+        nb_hidden_nodes = int(random.uniform(30, 200)) #int(math.pow(10, random.uniform(1.5, 2.5)))
+        weight_decay = math.pow(10, random.uniform(0, 1.5)) - 1 #math.pow(10, random.uniform(0, 1.5))
         learning_rate = math.pow(10, random.uniform(-2.5, -1.5)) #not relevant for adadelta
         grad_decay = 0.9
         epsilon = 0.0000001
@@ -173,7 +173,7 @@ def hyperoptimization(iters):
         print(nb_hidden_nodes, weight_decay, learning_rate, "\n")
 
         net = nn.NeuralNetwork(34, nb_hidden_nodes, 1, nb_hidden_layers=1, weight_decay=weight_decay)
-        min_err = testOneRun(net, 10, 1000, learning_rate, grad_decay, epsilon)
+        min_err = testOneRun(net, 10, 500, learning_rate, grad_decay, epsilon)
 
         results.append((min_err, nb_hidden_nodes, weight_decay, learning_rate))
 
@@ -190,7 +190,7 @@ def hyperoptimization(iters):
 
 def trainingSizeTest(net, iterations, learning_rate, grad_decay=0.9, epsilon=0.000001, adadelta=False):
     # Plots error vs training set size for diagnosis
-    x_train, y_train, x_test, y_test = makeOneFold(10)
+    x_train, y_train, x_test, y_test = makeOneFold(9)
     # for 10 folds, x_train is about 1000 examples now
 
     training_sizes = []
@@ -200,8 +200,8 @@ def trainingSizeTest(net, iterations, learning_rate, grad_decay=0.9, epsilon=0.0
     for i in range(6, 21):
         net_clone = net.clone()
         # only train on a portion of examples
-        nb_examples = i*50
-        min_err, test_err, train_err = net_clone.test(x_train[:nb_examples], y_train[:nb_examples], iterations, learning_rate, grad_decay, epsilon, adadelta, X_test=x_test, y_test=y_test)
+        nb_examples = i*100
+        min_err, test_err, train_err, class_error, test_class_error = net_clone.test(x_train[:nb_examples], y_train[:nb_examples], iterations, learning_rate, grad_decay, epsilon, adadelta, X_test=x_test, y_test=y_test)
 
         training_sizes.append(nb_examples)
         min_errs.append(min_err)
@@ -224,23 +224,22 @@ if __name__ == '__main__':
     #random.seed(12)
     #np.random.seed(12)
 
-    net = nn.NeuralNetwork(34, 34, 1, nb_hidden_layers=4, weight_decay=18.0)
+    net = nn.NeuralNetwork(34, 120, 1, nb_hidden_layers=1, weight_decay=1)
 
-
-    #trainingSizeTest(net, 500, 0.008)
+    #trainingSizeTest(net, 500, 0.01)
 
     #net2 = net.clone()
 
-    #testOneRun(net, 5, 3000, learning_rate=0.0075, adadelta=False)
-    sequentialValidate(net, 0.75, 30, 500, 0.0055)
+    #testOneRun(net, 6, 300, learning_rate=0.0075, adadelta=False)
+    #sequentialValidate(net, 0.75, 30, 500, 0.0055)
 
     #testOneRun(net2, 5, 500, adadelta=True)
 
     #crossValidate(net, 9, learning_rate=0.0075)
-    #hyperoptimization(20)
+    hyperoptimization(20)
 
-    net.graphCosts()
-    net.graphWeights(False)
+    #net.graphCosts()
+    #net.graphWeights(False)
     #net2.graphCosts(1)
     #net2.graphWeights()
     plt.show()
