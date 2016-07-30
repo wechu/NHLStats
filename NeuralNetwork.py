@@ -79,7 +79,7 @@ class NeuralNetwork:
         out_change = np.zeros(self.out_weights.shape)
 
         init_learning_rate = learning_rate
-        annealing_constant = 300
+        annealing_constant = 200
 
         # Minibatch update paramters
         print("Nb training examples:", len(X))
@@ -400,7 +400,7 @@ class NeuralNetwork:
         print("Test (class):", self.classError(X_test, y_test))
         print("Min (class)", self.test_class_error[self.test_error.index(minErr)])
 
-        return minErr, self.test_error[-1], self.train_error[-1]
+        return minErr, self.test_error[-1], self.train_error[-1], self.classError(X[:n], y[:n]), self.test_class_error[self.test_error.index(minErr)]
 
     def testProbBuckets(self, X, y, nb_buckets=10, test_frac=0, X_test=None, y_test=None):
         # Test probability buckets
