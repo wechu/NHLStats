@@ -36,15 +36,15 @@ dat$Away = as.character(dat$Away)
 
 ### Try rating systems
 library(PlayerRatings)
-test = glicko(dat, history=T)
+ratings = glicko(dat[dat$Time < 300], history=T)
 
-test2 = test$history[,,1]
-test2 = data.frame(t(test2))
+ratings2 = test$history[,,1]
+ratings2 = data.frame(t(test2))
 
 
-plot(test2$ARI, type="l", ylim=c(1700, 2800))
+plot(ratings2$ARI, type="l", ylim=c(1700, 2800))
 
 for(i in 1:30) {
-  lines(test2[names(test2)[i]], col="gray")
+  lines(ratings2[names(ratings2)[i]], col="gray")
 }
-lines(test2$ANA)
+lines(ratings2$ANA)
