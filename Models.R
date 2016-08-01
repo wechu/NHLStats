@@ -11,6 +11,9 @@ dat = read.csv(filename, fileEncoding="UTF-8-BOM")
 
 dat = dat[order(dat$Game), ]
 
+dat = dat[grepl(".+vs.+", dat$Game), ]
+
+
 ### Get team legend
 # team_legend maps team names to their 3-letter tags
 team_legend = read.csv("team_legend.csv", fileEncoding="UTF-8-BOM", header = F)
@@ -36,15 +39,20 @@ dat$Away = as.character(dat$Away)
 
 ### Try rating systems
 library(PlayerRatings)
-ratings = glicko(dat[dat$Time < 300], history=T)
+#train_dat = dat
+#test_dat = dat
 
-ratings2 = test$history[,,1]
-ratings2 = data.frame(t(test2))
+ratings = glicko(dat, history=T)
+
+ratings.value = ratings$history[,,1]
+ratings.value = data.frame(t(ratings.value))
 
 
-plot(ratings2$ARI, type="l", ylim=c(1700, 2800))
+plot(ratings.value$ARI, type="l", ylim=c(1700, 2800))
 
 for(i in 1:30) {
-  lines(ratings2[names(ratings2)[i]], col="gray")
+  lines(ratings.value[names(ratings.value)[i]], col="gray")
 }
-lines(ratings2$ANA)
+lines(ratings.value$ANA)
+
+#preds = predict(ratings, test_dat)
