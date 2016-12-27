@@ -1,4 +1,4 @@
-__author__ = 'Jonah'
+
 import urllib.request
 import re
 import csv
